@@ -79,22 +79,32 @@ def generate_table_html(table_name, table_path, output_dir):
         print(f"No valid render module found for table {table_name}")
         return False
     
-    # Generate HTML
+    # Generate table HTML
     try:
         html_content = render_module.render_table_page(data_rows, schema or {})
-        
         # Create output directory
         table_output_dir = output_dir / table_name
         table_output_dir.mkdir(exist_ok=True)
-        
-        # Write HTML file
+        # Write table index.html
         output_file = table_output_dir / "index.html"
         with open(output_file, 'w', encoding='utf-8') as f:
             f.write(html_content)
-        
         print(f"Generated HTML for {table_name}: {output_file}")
+
+        # Generate individual row pages if supported
+        if hasattr(render_module, 'render_row_page'):
+            for row in data_rows:
+                row_short_name = row.get('short_name') or row.get('id')
+                if not row_short_name:
+                    continue
+                row_html = render_module.render_row_page(row, schema or {})
+                row_file = table_output_dir / f"{row_short_name}.html"
+                with open(row_file, 'w', encoding='utf-8') as rf:
+                    rf.write(row_html)
+                print(f"Generated row page: {row_file}")
+        else:
+            print(f"render_row_page not found in render module for {table_name}, skipping row pages.")
         return True
-        
     except Exception as e:
         print(f"Error generating HTML for table {table_name}: {e}")
         return False
@@ -102,6 +112,18 @@ def generate_table_html(table_name, table_path, output_dir):
 
 def generate_main_index(tables_info, output_dir):
     """Generate the main index.html page."""
+    # Load main.json for main page info
+    script_dir = Path(__file__).parent
+    main_json_path = script_dir / "data" / "main.json"
+    main_info = {}
+    if main_json_path.exists():
+        try:
+            with open(main_json_path, "r", encoding="utf-8") as f:
+                import json
+                main_info.update(json.load(f))
+        except Exception as e:
+            print(f"Warning: Could not load main.json: {e}")
+
     tables_html = ""
     for table_name, info in tables_info.items():
         description = info.get('description', f'{table_name.title()} data')
@@ -113,41 +135,41 @@ def generate_main_index(tables_info, output_dir):
             <p class="record-count">{count} records</p>
         </div>
         """
-    
+
     main_html = f"""
     <!DOCTYPE html>
     <html lang="en">
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Math Database</title>
+        <title>{main_info['title']}</title>
         <link rel="stylesheet" href="styles.css">
     </head>
     <body>
         <header>
-            <h1>Mathematics Database</h1>
-            <p>A comprehensive collection of mathematical knowledge</p>
+            <h1>{main_info['header']}</h1>
+            <p>{main_info['subtitle']}</p>
         </header>
         <main class="main-container">
             <div class="intro">
-                <p>Welcome to the Mathematics Database! Explore our collections of mathematical equations, famous mathematicians, and more.</p>
+                <p>{main_info['description']}</p>
             </div>
             <div class="tables-grid">
                 {tables_html}
             </div>
         </main>
         <footer>
-            <p>Generated with Python • Hosted on GitHub Pages</p>
+            <p>{main_info['footer']}</p>
         </footer>
     </body>
     </html>
     """
-    
+
     # Write main index file
     index_file = output_dir / "index.html"
     with open(index_file, 'w', encoding='utf-8') as f:
         f.write(main_html)
-    
+
     print(f"Generated main index: {index_file}")
 
 

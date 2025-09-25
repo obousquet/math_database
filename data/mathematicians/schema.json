@@ -44,5 +44,12 @@
       "description": "Brief biography",
       "required": false
     }
+    ,
+    {
+      "name": "short_name",
+      "type": "string",
+      "description": "Short identifier for cross-referencing between tables (e.g., 'euler').",
+      "required": true
+    }
   ]
 }

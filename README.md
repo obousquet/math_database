@@ -98,6 +98,31 @@ def render_table_page(rows, schema):
    - Click "Save"
    - Your site will be available at `https://yourusername.github.io/repository-name`
 
+## Visualizing in VS Code
+
+To preview the generated website directly in VS Code:
+
+### Option 1: Simple Browser (for quick preview)
+```bash
+# Open the HTML file directly in VS Code's Simple Browser
+# Note: CSS may not load properly with this method
+code docs/index.html
+```
+
+### Option 2: Local HTTP Server (recommended)
+```bash
+# Navigate to the docs directory
+cd docs
+
+# Start a local HTTP server
+python3 -m http.server 8000
+
+# Then open http://localhost:8000 in VS Code's Simple Browser
+# This ensures CSS and other assets load correctly
+```
+
+The local HTTP server method is recommended as it properly serves all static assets (CSS, images, etc.) and provides the most accurate preview of how your site will appear when deployed.
+
 ## Included Examples
 
 This repository includes example data for:

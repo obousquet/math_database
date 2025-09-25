@@ -38,5 +38,18 @@
       "description": "List of real-world applications",
       "required": false
     }
+    ,
+    {
+      "name": "short_name",
+      "type": "string",
+      "description": "Short identifier for cross-referencing between tables (e.g., 'quadratic_formula').",
+      "required": true
+    },
+    {
+      "name": "author",
+      "type": "string",
+      "description": "Short name of the mathematician who authored or is most associated with this equation (for cross-reference).",
+      "required": false
+    }
   ]
 }
