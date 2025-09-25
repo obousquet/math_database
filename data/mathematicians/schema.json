@@ -1,0 +1,48 @@
+{
+  "table_name": "mathematicians",
+  "description": "Famous mathematicians and their contributions",
+  "columns": [
+    {
+      "name": "id",
+      "type": "string",
+      "description": "Unique identifier for the mathematician",
+      "required": true
+    },
+    {
+      "name": "name",
+      "type": "string",
+      "description": "Full name of the mathematician",
+      "required": true
+    },
+    {
+      "name": "birth_year",
+      "type": "integer",
+      "description": "Year of birth",
+      "required": false
+    },
+    {
+      "name": "death_year",
+      "type": "integer",
+      "description": "Year of death (null if still alive)",
+      "required": false
+    },
+    {
+      "name": "nationality",
+      "type": "string",
+      "description": "Country of origin",
+      "required": false
+    },
+    {
+      "name": "contributions",
+      "type": "array",
+      "description": "List of major mathematical contributions",
+      "required": true
+    },
+    {
+      "name": "biography",
+      "type": "string",
+      "description": "Brief biography",
+      "required": false
+    }
+  ]
+}

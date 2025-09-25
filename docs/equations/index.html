@@ -1,0 +1,108 @@
+
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Mathematical Equations - Math Database</title>
+        <link rel="stylesheet" href="../styles.css">
+        <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+        <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+        <script>
+            window.MathJax = {
+                tex: {
+                    inlineMath: [['$', '$'], ['\\(', '\\)']],
+                    displayMath: [['$$', '$$'], ['\\[', '\\]']]
+                }
+            };
+        </script>
+    </head>
+    <body>
+        <header>
+            <h1>Mathematical Equations</h1>
+            <nav>
+                <a href="../index.html">Home</a>
+                <a href="../mathematicians/index.html">Mathematicians</a>
+            </nav>
+        </header>
+        <main class="equations-container">
+            <div class="table-description">
+                <p>Mathematical equations and their properties</p>
+            </div>
+            <div class="equations-grid">
+                
+    <div class="equation-card" id="eq-003">
+        <h3>Euler's Identity</h3>
+        <div class="equation-display">
+            <div class="latex-equation" data-latex="e^{i\pi} + 1 = 0">
+                e^{i\pi} + 1 = 0
+            </div>
+        </div>
+        <div class="equation-details">
+            <p><strong>Category:</strong> complex_analysis</p>
+            <p><strong>Description:</strong> Often called the most beautiful equation in mathematics, connecting five fundamental mathematical constants.</p>
+            
+    <div class="applications">
+        <strong>Applications:</strong>
+        <ul class='applications-list'><li>Complex analysis</li><li>Signal processing</li><li>Quantum mechanics</li><li>Electrical engineering</li></ul>
+    </div>
+    
+        </div>
+    </div>
+    
+    <div class="equation-card" id="eq-001">
+        <h3>Quadratic Formula</h3>
+        <div class="equation-display">
+            <div class="latex-equation" data-latex="x = \frac{-b \pm \sqrt{b^2 - 4ac}}{2a}">
+                x = \frac{-b \pm \sqrt{b^2 - 4ac}}{2a}
+            </div>
+        </div>
+        <div class="equation-details">
+            <p><strong>Category:</strong> algebra</p>
+            <p><strong>Description:</strong> The quadratic formula provides the solutions to any quadratic equation of the form ax² + bx + c = 0.</p>
+            
+    <div class="applications">
+        <strong>Applications:</strong>
+        <ul class='applications-list'><li>Solving quadratic equations</li><li>Finding roots of parabolas</li><li>Optimization problems</li><li>Physics projectile motion</li></ul>
+    </div>
+    
+        </div>
+    </div>
+    
+    <div class="equation-card" id="eq-002">
+        <h3>Pythagorean Theorem</h3>
+        <div class="equation-display">
+            <div class="latex-equation" data-latex="a^2 + b^2 = c^2">
+                a^2 + b^2 = c^2
+            </div>
+        </div>
+        <div class="equation-details">
+            <p><strong>Category:</strong> geometry</p>
+            <p><strong>Description:</strong> In a right triangle, the square of the hypotenuse equals the sum of squares of the other two sides.</p>
+            
+    <div class="applications">
+        <strong>Applications:</strong>
+        <ul class='applications-list'><li>Right triangle calculations</li><li>Distance calculations</li><li>Engineering and construction</li><li>Navigation and GPS systems</li></ul>
+    </div>
+    
+        </div>
+    </div>
+    
+            </div>
+        </main>
+        <script>
+            // Initialize MathJax for LaTeX rendering
+            document.addEventListener('DOMContentLoaded', function() {
+                const equations = document.querySelectorAll('.latex-equation');
+                equations.forEach(eq => {
+                    const latex = eq.getAttribute('data-latex');
+                    eq.innerHTML = '$$' + latex + '$$';
+                });
+                if (window.MathJax) {
+                    MathJax.typesetPromise();
+                }
+            });
+        </script>
+    </body>
+    </html>
+    

@@ -1,0 +1,13 @@
+{
+  "id": "002",
+  "name": "Pythagorean Theorem",
+  "equation": "a^2 + b^2 = c^2",
+  "category": "geometry",
+  "description": "In a right triangle, the square of the hypotenuse equals the sum of squares of the other two sides.",
+  "applications": [
+    "Right triangle calculations",
+    "Distance calculations",
+    "Engineering and construction",
+    "Navigation and GPS systems"
+  ]
+}
