@@ -1,0 +1,42 @@
+{
+  "table_name": "equations",
+  "description": "Mathematical equations and their properties",
+  "columns": [
+    {
+      "name": "id",
+      "type": "string",
+      "description": "Unique identifier for the equation",
+      "required": true
+    },
+    {
+      "name": "name",
+      "type": "string", 
+      "description": "Human-readable name of the equation",
+      "required": true
+    },
+    {
+      "name": "equation",
+      "type": "string",
+      "description": "LaTeX representation of the equation",
+      "required": true
+    },
+    {
+      "name": "category",
+      "type": "string",
+      "description": "Mathematical category (algebra, calculus, geometry, etc.)",
+      "required": true
+    },
+    {
+      "name": "description",
+      "type": "string",
+      "description": "Detailed description of the equation and its applications",
+      "required": false
+    },
+    {
+      "name": "applications",
+      "type": "array",
+      "description": "List of real-world applications",
+      "required": false
+    }
+  ]
+}

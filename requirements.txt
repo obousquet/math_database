@@ -1,0 +1,7 @@
+# Math Database HTML Generator Requirements
+# 
+# This project uses only Python standard library modules
+# No external dependencies are required for the basic functionality
+#
+# Optional: For development and testing
+# python >= 3.6

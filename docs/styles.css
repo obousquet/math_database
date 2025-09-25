@@ -1,0 +1,185 @@
+/* Math Database Styles */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    line-height: 1.6;
+    color: #333;
+    background-color: #f8f9fa;
+}
+
+header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 2rem 0;
+    text-align: center;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+header h1 {
+    font-size: 2.5rem;
+    margin-bottom: 0.5rem;
+}
+
+nav {
+    margin-top: 1rem;
+}
+
+nav a {
+    color: white;
+    text-decoration: none;
+    margin: 0 1rem;
+    padding: 0.5rem 1rem;
+    border-radius: 5px;
+    transition: background-color 0.3s;
+}
+
+nav a:hover {
+    background-color: rgba(255,255,255,0.2);
+}
+
+main {
+    max-width: 1200px;
+    margin: 2rem auto;
+    padding: 0 1rem;
+}
+
+.intro {
+    text-align: center;
+    margin-bottom: 3rem;
+    font-size: 1.1rem;
+}
+
+.tables-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 2rem;
+    margin-bottom: 3rem;
+}
+
+.table-card {
+    background: white;
+    padding: 2rem;
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.table-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 15px rgba(0,0,0,0.2);
+}
+
+.table-card h3 a {
+    color: #667eea;
+    text-decoration: none;
+    font-size: 1.5rem;
+}
+
+.table-card h3 a:hover {
+    color: #764ba2;
+}
+
+.record-count {
+    color: #666;
+    font-style: italic;
+    margin-top: 1rem;
+}
+
+/* Table-specific styles */
+.equations-grid, .mathematicians-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    gap: 2rem;
+}
+
+.equation-card, .mathematician-card {
+    background: white;
+    padding: 2rem;
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    transition: transform 0.3s;
+}
+
+.equation-card:hover, .mathematician-card:hover {
+    transform: translateY(-3px);
+}
+
+.equation-display {
+    background: #f8f9fa;
+    padding: 1.5rem;
+    border-radius: 8px;
+    margin: 1rem 0;
+    text-align: center;
+    border-left: 4px solid #667eea;
+}
+
+.latex-equation {
+    font-size: 1.2rem;
+    color: #333;
+}
+
+.equation-details, .mathematician-details {
+    margin-top: 1rem;
+}
+
+.applications, .contributions {
+    margin-top: 1rem;
+}
+
+.applications-list, .contributions-list {
+    margin-left: 1.5rem;
+    margin-top: 0.5rem;
+}
+
+.applications-list li, .contributions-list li {
+    margin-bottom: 0.3rem;
+}
+
+.biography {
+    margin-top: 1rem;
+    padding: 1rem;
+    background: #f8f9fa;
+    border-radius: 5px;
+    border-left: 4px solid #28a745;
+}
+
+.table-description {
+    text-align: center;
+    margin-bottom: 2rem;
+    font-size: 1.1rem;
+    color: #666;
+}
+
+footer {
+    text-align: center;
+    padding: 2rem;
+    background: #333;
+    color: white;
+    margin-top: 3rem;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .equations-grid, .mathematicians-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .equation-card, .mathematician-card {
+        padding: 1.5rem;
+    }
+    
+    header h1 {
+        font-size: 2rem;
+    }
+    
+    nav a {
+        margin: 0 0.5rem;
+        padding: 0.3rem 0.8rem;
+    }
+}

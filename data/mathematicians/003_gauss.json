@@ -1,0 +1,15 @@
+{
+  "id": "003",
+  "name": "Carl Friedrich Gauss",
+  "birth_year": 1777,
+  "death_year": 1855,
+  "nationality": "German",
+  "contributions": [
+    "Number theory",
+    "Differential geometry",
+    "Statistics",
+    "Analysis",
+    "Astronomy"
+  ],
+  "biography": "Known as the 'Prince of Mathematics', Gauss made significant contributions to many fields including number theory, statistics, analysis, differential geometry, geodesy, geophysics, mechanics, electrostatics, astronomy, matrix theory, and optics."
+}
