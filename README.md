@@ -91,7 +91,12 @@ def render_table_page(rows, schema):
    python generate_website.py
    ```
 4. Open `docs/index.html` in your browser to preview
-5. Deploy the `docs/` directory to GitHub Pages
+5. Deploy to GitHub Pages:
+   - Go to your repository Settings → Pages
+   - Under "Source", select "Deploy from a branch"
+   - Select the "main" branch and "/docs" folder
+   - Click "Save"
+   - Your site will be available at `https://yourusername.github.io/repository-name`
 
 ## Included Examples
 
