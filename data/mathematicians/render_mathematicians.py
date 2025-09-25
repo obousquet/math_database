@@ -1,15 +1,9 @@
 """
 Render mathematicians data to HTML format.
 """
-
-import sys
-from pathlib import Path
-
-# Add parent directory to path to import render_utils
-sys.path.append(str(Path(__file__).parent.parent.parent))
 from render_utils import render_list_section, render_base_page_template, render_table_content
 
-def render_row(data):
+def render_row(data, data_dir):
     """Render a single mathematician row to HTML."""
     birth_year = data.get('birth_year', 'Unknown')
     death_year = data.get('death_year', 'Present')
@@ -33,30 +27,32 @@ def render_row(data):
     '''
     return html
 
-def render_table_page(rows, schema):
+def render_table_page(rows, schema, data_dir):
     """Render the complete mathematicians table page."""
     rows_html = ""
     for row in rows:
-        rows_html += render_row(row)
-    
+        rows_html += render_row(row, data_dir=data_dir)
     content = render_table_content(rows_html, schema)
-    
     return render_base_page_template(
         title="",
         table_name="mathematicians", 
         other_tables=["equations"],
-        content=content
+        content=content,
+        data_dir=data_dir,
+        use_mathjax=False
     )
 
-def render_row_page(row, schema):
+
+def render_row_page(row, schema, data_dir):
     """Render a standalone HTML page for a single mathematician row."""
-    content = render_row(row)
-    # Add a back link to the table page
+    content = render_row(row, data_dir=data_dir)
     back_link = '<div class="back-link"><a href="index.html">&larr; Back to Mathematicians Table</a></div>'
-    content = back_link + render_row(row)
+    content = back_link + render_row(row, data_dir=data_dir)
     return render_base_page_template(
         title=f"{row.get('name', 'Mathematician')} - Math Database",
         table_name="mathematicians",
         other_tables=["equations", "mathematicians"],
-        content=content
+        content=content,
+        data_dir=data_dir,
+        use_mathjax=False
     )

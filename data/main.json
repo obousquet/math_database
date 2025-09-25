@@ -1,7 +1,7 @@
 {
-  "title": "Math Database",
-  "header": "Mathematics Database",
-  "subtitle": "A comprehensive collection of mathematical knowledge",
-  "description": "Welcome to the Mathematics Database! Explore our collections of mathematical equations, famous mathematicians, and more.",
+  "title": "Demo Database",
+  "header": "Mathematics Demo Database",
+  "subtitle": "A simple demo for illustration",
+  "description": "Welcome to the Mathematics Demo Database!",
   "footer": "Generated with Python • Hosted on GitHub Pages"
 }

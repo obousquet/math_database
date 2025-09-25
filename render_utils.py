@@ -1,14 +1,11 @@
 """
 Common rendering utilities for HTML generation.
 """
-
 import json
 from pathlib import Path
 
-def lookup_table_entry_by_short_name(table, short_name, data_dir=None):
+def lookup_table_entry_by_short_name(table, short_name, data_dir):
     """Lookup a table entry by its short_name. Returns the entry dict or None."""
-    if data_dir is None:
-        data_dir = Path(__file__).parent / "data"
     table_dir = Path(data_dir) / table
     for file in table_dir.glob("*.json"):
         if file.name == "schema.json":
@@ -22,10 +19,9 @@ def lookup_table_entry_by_short_name(table, short_name, data_dir=None):
             continue
     return None
 
-def lookup_table_entry_by_id(table, id_value, data_dir=None):
+
+def lookup_table_entry_by_id(table, id_value, data_dir):
     """Lookup a table entry by its id. Returns the entry dict or None."""
-    if data_dir is None:
-        data_dir = Path(__file__).parent / "data"
     table_dir = Path(data_dir) / table
     for file in table_dir.glob("*.json"):
         if file.name == "schema.json":
@@ -56,7 +52,35 @@ def render_list_section(items, title, css_class):
     </div>
     """
 
-def render_base_page_template(title, table_name, other_tables, content, extra_head="", extra_scripts=""):
+def get_mathjax_head():
+    return """
+        <script src=\"https://polyfill.io/v3/polyfill.min.js?features=es6\"></script>
+        <script id=\"MathJax-script\" async src=\"https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js\"></script>
+        <script>
+            window.MathJax = {
+                tex: {
+                    inlineMath: [['$', '$'], ['\\(', '\\)']],
+                    displayMath: [['$$', '$$'], ['\\[', '\\]']]
+                }
+            };</script>"""
+
+def get_mathjax_scripts():
+    return """
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                const equations = document.querySelectorAll('.latex-equation');
+                equations.forEach(eq => {
+                    const latex = eq.getAttribute('data-latex');
+                    eq.innerHTML = '$$' + latex + '$$';
+                });
+                if (window.MathJax) {
+                    MathJax.typesetPromise();
+                }
+            });
+        </script>"""
+
+
+def render_base_page_template(title, table_name, other_tables, content, data_dir, extra_head="", extra_scripts="", use_mathjax=False):
     """Render the base HTML page template with common structure."""
     # Generate navigation links
     nav_links = ['<a href="../index.html">Home</a>']
@@ -68,7 +92,7 @@ def render_base_page_template(title, table_name, other_tables, content, extra_he
     # Try to get site-wide title from main.json
     site_title = None
     try:
-        main_json_path = Path(__file__).parent / "data" / "main.json"
+        main_json_path = Path(data_dir) / "main.json"
         if main_json_path.exists():
             with open(main_json_path, "r", encoding="utf-8") as f:
                 main_info = json.load(f)
@@ -80,7 +104,7 @@ def render_base_page_template(title, table_name, other_tables, content, extra_he
     table_title = None
     if table_name:
         try:
-            schema_path = Path(__file__).parent / "data" / table_name / "schema.json"
+            schema_path = Path(data_dir) / table_name / "schema.json"
             if schema_path.exists():
                 with open(schema_path, "r", encoding="utf-8") as f:
                     schema = json.load(f)
@@ -98,14 +122,19 @@ def render_base_page_template(title, table_name, other_tables, content, extra_he
     else:
         page_title = title
 
+    # Add MathJax if requested
+    if use_mathjax:
+        extra_head = get_mathjax_head() + (extra_head or "")
+        extra_scripts = get_mathjax_scripts() + (extra_scripts or "")
+
     return f"""
     <!DOCTYPE html>
-    <html lang="en">
+    <html lang=\"en\">
     <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta charset=\"UTF-8\">
+        <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">
         <title>{page_title}</title>
-        <link rel="stylesheet" href="../styles.css">
+        <link rel=\"stylesheet\" href=\"../styles.css\">
         {extra_head}
     </head>
     <body>
@@ -115,7 +144,7 @@ def render_base_page_template(title, table_name, other_tables, content, extra_he
                 {nav_html}
             </nav>
         </header>
-        <main class="{table_name}-container">
+        <main class=\"{table_name}-container\">
             {content}
         </main>
         {extra_scripts}

@@ -11,6 +11,7 @@ import json
 import importlib.util
 import sys
 from pathlib import Path
+import argparse
 
 
 def load_json_file(filepath):
@@ -62,7 +63,7 @@ def get_table_data(table_path):
     return data_files, schema
 
 
-def generate_table_html(table_name, table_path, output_dir):
+def generate_table_html(table_name, table_path, data_dir, output_dir):
     """Generate HTML for a single table."""
     print(f"Processing table: {table_name}")
     
@@ -81,7 +82,7 @@ def generate_table_html(table_name, table_path, output_dir):
     
     # Generate table HTML
     try:
-        html_content = render_module.render_table_page(data_rows, schema or {})
+        html_content = render_module.render_table_page(data_rows, schema or {}, data_dir=data_dir)
         # Create output directory
         table_output_dir = output_dir / table_name
         table_output_dir.mkdir(exist_ok=True)
@@ -97,7 +98,7 @@ def generate_table_html(table_name, table_path, output_dir):
                 row_short_name = row.get('short_name') or row.get('id')
                 if not row_short_name:
                     continue
-                row_html = render_module.render_row_page(row, schema or {})
+                row_html = render_module.render_row_page(row, schema or {}, data_dir=data_dir)
                 row_file = table_output_dir / f"{row_short_name}.html"
                 with open(row_file, 'w', encoding='utf-8') as rf:
                     rf.write(row_html)
@@ -198,48 +199,54 @@ def generate_css(output_dir):
 def main():
     """Main function to generate the website."""
     # Set up paths
-    script_dir = Path(__file__).parent
-    data_dir = script_dir / "data"
-    output_dir = script_dir / "docs"  # GitHub Pages default directory
-    
+    parser = argparse.ArgumentParser(description="Generate Math Database static website.")
+    parser.add_argument("data_dir", type=str, help="Path to the data directory.")
+    parser.add_argument("--output_dir", type=str, default=None, help="Path to the output directory (default: <data_dir>/../docs)")
+    args = parser.parse_args()
+
+    data_dir = Path(args.data_dir).resolve()
+    output_dir = Path(args.output_dir).resolve() if args.output_dir else (data_dir.parent / "docs")
+
     # Create output directory
     output_dir.mkdir(exist_ok=True)
-    
+
     if not data_dir.exists():
         print(f"Error: Data directory {data_dir} not found")
         sys.exit(1)
-    
+
     print(f"Generating website from {data_dir} to {output_dir}")
-    
+
     # Find all table directories
     tables_info = {}
     successful_tables = 0
-    
+
     for table_path in data_dir.iterdir():
         if table_path.is_dir():
             table_name = table_path.name
-            
             # Get table info
             data_rows, schema = get_table_data(table_path)
+            if schema:
+                description = schema.get('description', f'{table_name.title()} data')
+            else:
+                description = f'{table_name.title()} data'
             tables_info[table_name] = {
-                'description': schema.get('description', f'{table_name.title()} data') if schema else f'{table_name.title()} data',
+                'description': description,
                 'count': len(data_rows)
             }
-            
             # Generate HTML for this table
-            if generate_table_html(table_name, table_path, output_dir):
+            if generate_table_html(table_name, table_path, data_dir, output_dir):
                 successful_tables += 1
-    
+
     if successful_tables == 0:
         print("No tables were successfully processed")
         sys.exit(1)
-    
+
     # Generate main index page
     generate_main_index(tables_info, output_dir)
-    
+
     # Generate CSS
     generate_css(output_dir)
-    
+
     print(f"\nWebsite generation complete!")
     print(f"Successfully processed {successful_tables} tables")
     print(f"Output directory: {output_dir}")
