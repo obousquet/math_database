@@ -1,52 +1,20 @@
 """
 Common rendering utilities for HTML generation.
 """
-import json
-from pathlib import Path
+import load_utils
 
-def lookup_table_entry_by_short_name(table, short_name, data_dir):
-    """Lookup a table entry by its short_name. Returns the entry dict or None."""
-    table_dir = Path(data_dir) / table
-    for file in table_dir.glob("*.json"):
-        if file.name == "schema.json":
-            continue
-        try:
-            with open(file, "r", encoding="utf-8") as f:
-                entry = json.load(f)
-            if entry.get("short_name") == short_name:
-                return entry
-        except Exception:
-            continue
-    return None
-
-
-def lookup_table_entry_by_id(table, id_value, data_dir):
-    """Lookup a table entry by its id. Returns the entry dict or None."""
-    table_dir = Path(data_dir) / table
-    for file in table_dir.glob("*.json"):
-        if file.name == "schema.json":
-            continue
-        try:
-            with open(file, "r", encoding="utf-8") as f:
-                entry = json.load(f)
-            if entry.get("id") == id_value:
-                return entry
-        except Exception:
-            continue
-    return None
-
-def render_list_section(items, title, css_class):
+def render_list_section(items, title):
     """Render a list of items as an HTML section with title."""
     if not items:
         return ""
     
-    items_html = f"<ul class='{css_class}-list'>"
+    items_html = f"<ul class='fields-list'>"
     for item in items:
         items_html += f"<li>{item}</li>"
     items_html += "</ul>"
     
     return f"""
-    <div class="{css_class}">
+    <div class="fields">
         <strong>{title}:</strong>
         {items_html}
     </div>
@@ -79,38 +47,27 @@ def get_mathjax_scripts():
             });
         </script>"""
 
-
 def render_base_page_template(title, table_name, other_tables, content, data_dir, extra_head="", extra_scripts="", use_mathjax=False):
     """Render the base HTML page template with common structure."""
     # Generate navigation links
     nav_links = ['<a href="../index.html">Home</a>']
-    all_tables = other_tables + [table_name]
-    for other_table in sorted(all_tables):
-        nav_links.append(f'<a href="../{other_table}/index.html">{other_table.title()}</a>')
+    all_tables = load_utils.get_table_infos(data_dir)
+    for table, info in sorted(all_tables.items(), key=lambda v: v[1]['name']):
+        nav_links.append(f'<a href="../{table}/index.html">{info["name"]}</a>')
     nav_html = "\n                ".join(nav_links)
 
     # Try to get site-wide title from main.json
     site_title = None
-    try:
-        main_json_path = Path(data_dir) / "main.json"
-        if main_json_path.exists():
-            with open(main_json_path, "r", encoding="utf-8") as f:
-                main_info = json.load(f)
-                site_title = main_info.get("title")
-    except Exception:
-        pass
+    main_json = load_utils.get_main_json(data_dir)
+    site_title = main_json.get("title")
 
-    # Try to get table title/description from schema.json
+    # Use get_table_schema for table title/description
     table_title = None
+    schema = None
     if table_name:
-        try:
-            schema_path = Path(data_dir) / table_name / "schema.json"
-            if schema_path.exists():
-                with open(schema_path, "r", encoding="utf-8") as f:
-                    schema = json.load(f)
-                    table_title = schema.get("description") or schema.get("table_name")
-        except Exception:
-            pass
+        schema = load_utils.get_table_schema(table_name, data_dir)
+        if schema:
+            table_title = schema.get("description") or schema.get("table_name")
 
     # Compose the <title> tag
     if table_title and site_title:
@@ -144,13 +101,14 @@ def render_base_page_template(title, table_name, other_tables, content, data_dir
                 {nav_html}
             </nav>
         </header>
-        <main class=\"{table_name}-container\">
+        <main class=\"table-container\">
             {content}
         </main>
         {extra_scripts}
     </body>
     </html>
     """
+
 
 def render_table_content(rows_html, schema):
     """Render the main table content with description."""
@@ -160,7 +118,22 @@ def render_table_content(rows_html, schema):
             <div class="table-description">
                 <p>{description}</p>
             </div>
-            <div class="{schema.get('table_name', 'items') if schema else 'items'}-grid">
+            <div class="table-grid">
                 {rows_html}
             </div>
     """
+
+def maybe_linked(table, value, data_dir):
+    """If value starts with #, look up as id or short_name in table and return an HTML link to the entry (using its name). Otherwise, return value as is."""
+    if not isinstance(value, str) or not value.startswith('#'):
+        return value
+    key = value[1:]
+    # Try id lookup first
+    entry = load_utils.lookup_table_entry_by_id(table, key, data_dir)
+    if not entry:
+        entry = load_utils.lookup_table_entry_by_short_name(table, key, data_dir)
+    if entry:
+        short_name = entry.get('short_name', key)
+        name = entry.get('name', key)
+        return f'<a href="../{table}/{short_name}.html">{name}</a>'
+    return '?' + value

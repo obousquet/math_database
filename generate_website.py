@@ -6,76 +6,25 @@ This script processes data files in the data/ directory and generates
 an HTML website suitable for hosting on GitHub Pages.
 """
 
-import os
-import json
-import importlib.util
+import functools
 import sys
 from pathlib import Path
 import argparse
-
-
-def load_json_file(filepath):
-    """Load and parse a JSON file."""
-    try:
-        with open(filepath, 'r', encoding='utf-8') as f:
-            return json.load(f)
-    except Exception as e:
-        print(f"Error loading JSON file {filepath}: {e}")
-        return None
-
-
-def load_render_module(table_path, table_name):
-    """Dynamically load the render module for a table."""
-    render_file = table_path / f"render_{table_name}.py"
-    if not render_file.exists():
-        print(f"Warning: render file {render_file} not found")
-        return None
-    
-    spec = importlib.util.spec_from_file_location(f"render_{table_name}", render_file)
-    module = importlib.util.module_from_spec(spec)
-    try:
-        spec.loader.exec_module(module)
-        return module
-    except Exception as e:
-        print(f"Error loading render module for {table_name}: {e}")
-        return None
-
-
-def get_table_data(table_path):
-    """Load all data files for a table."""
-    data_files = []
-    schema = None
-    
-    # Load schema
-    schema_file = table_path / "schema.json"
-    if schema_file.exists():
-        schema = load_json_file(schema_file)
-    else:
-        print(f"Warning: schema.json not found in {table_path}")
-    
-    # Load all JSON data files (excluding schema.json)
-    for file_path in table_path.glob("*.json"):
-        if file_path.name != "schema.json":
-            data = load_json_file(file_path)
-            if data:
-                data_files.append(data)
-    
-    return data_files, schema
-
+import load_utils
 
 def generate_table_html(table_name, table_path, data_dir, output_dir):
     """Generate HTML for a single table."""
     print(f"Processing table: {table_name}")
     
     # Load data and schema
-    data_rows, schema = get_table_data(table_path)
+    data_rows, schema = load_utils.get_table_data(table_name, data_dir)
     
     if not data_rows:
         print(f"No data found for table {table_name}")
         return False
     
     # Load render module
-    render_module = load_render_module(table_path, table_name)
+    render_module = load_utils.load_render_module(table_path, table_name)
     if not render_module or not hasattr(render_module, 'render_table_page'):
         print(f"No valid render module found for table {table_name}")
         return False
@@ -111,19 +60,10 @@ def generate_table_html(table_name, table_path, data_dir, output_dir):
         return False
 
 
-def generate_main_index(tables_info, output_dir):
+def generate_main_index(tables_info, data_dir, output_dir):
     """Generate the main index.html page."""
     # Load main.json for main page info
-    script_dir = Path(__file__).parent
-    main_json_path = script_dir / "data" / "main.json"
-    main_info = {}
-    if main_json_path.exists():
-        try:
-            with open(main_json_path, "r", encoding="utf-8") as f:
-                import json
-                main_info.update(json.load(f))
-        except Exception as e:
-            print(f"Warning: Could not load main.json: {e}")
+    main_info = load_utils.get_main_json(data_dir)
 
     tables_html = ""
     for table_name, info in tables_info.items():
@@ -195,7 +135,6 @@ def generate_css(output_dir):
     except Exception as e:
         print(f"Error generating CSS: {e}")
 
-
 def main():
     """Main function to generate the website."""
     # Set up paths
@@ -217,22 +156,12 @@ def main():
     print(f"Generating website from {data_dir} to {output_dir}")
 
     # Find all table directories
-    tables_info = {}
+    tables_info = load_utils.get_table_infos(data_dir)
     successful_tables = 0
 
-    for table_path in data_dir.iterdir():
+    for table_name, info in tables_info.items():
+        table_path = data_dir / table_name
         if table_path.is_dir():
-            table_name = table_path.name
-            # Get table info
-            data_rows, schema = get_table_data(table_path)
-            if schema:
-                description = schema.get('description', f'{table_name.title()} data')
-            else:
-                description = f'{table_name.title()} data'
-            tables_info[table_name] = {
-                'description': description,
-                'count': len(data_rows)
-            }
             # Generate HTML for this table
             if generate_table_html(table_name, table_path, data_dir, output_dir):
                 successful_tables += 1
@@ -242,7 +171,7 @@ def main():
         sys.exit(1)
 
     # Generate main index page
-    generate_main_index(tables_info, output_dir)
+    generate_main_index(tables_info, data_dir, output_dir)
 
     # Generate CSS
     generate_css(output_dir)

@@ -92,13 +92,13 @@ main {
 }
 
 /* Table-specific styles */
-.equations-grid, .mathematicians-grid {
+.table-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
     gap: 2rem;
 }
 
-.equation-card, .mathematician-card {
+.table-card {
     background: white;
     padding: 2rem;
     border-radius: 10px;
@@ -106,11 +106,11 @@ main {
     transition: transform 0.3s;
 }
 
-.equation-card:hover, .mathematician-card:hover {
+.table-card:hover {
     transform: translateY(-3px);
 }
 
-.equation-display {
+.table-display {
     background: #f8f9fa;
     padding: 1.5rem;
     border-radius: 8px;
@@ -124,24 +124,24 @@ main {
     color: #333;
 }
 
-.equation-details, .mathematician-details {
+.table-details {
     margin-top: 1rem;
 }
 
-.applications, .contributions {
+.fields {
     margin-top: 1rem;
 }
 
-.applications-list, .contributions-list {
+.fields-list {
     margin-left: 1.5rem;
     margin-top: 0.5rem;
 }
 
-.applications-list li, .contributions-list li {
+.fields-list li {
     margin-bottom: 0.3rem;
 }
 
-.biography {
+.text-field {
     margin-top: 1rem;
     padding: 1rem;
     background: #f8f9fa;
@@ -164,13 +164,33 @@ footer {
     margin-top: 3rem;
 }
 
+.back-link-light {
+    color: #aaa;
+    font-size: 0.95em;
+    background: none;
+    border: none;
+    margin-bottom: 1.5rem;
+    text-align: left;
+}
+
+.back-link-light a {
+    color: #aaa;
+    text-decoration: none;
+    transition: color 0.2s;
+}
+
+.back-link-light a:hover {
+    color: #667eea;
+    text-decoration: underline;
+}
+
 /* Responsive design */
 @media (max-width: 768px) {
-    .equations-grid, .mathematicians-grid {
+    .table-grid {
         grid-template-columns: 1fr;
     }
-    
-    .equation-card, .mathematician-card {
+
+    .table-card {
         padding: 1.5rem;
     }
     

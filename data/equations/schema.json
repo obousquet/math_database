@@ -1,5 +1,6 @@
 {
   "table_name": "equations",
+  "title": "Equations",
   "description": "Mathematical equations and their properties",
   "columns": [
     {

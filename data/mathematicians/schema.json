@@ -1,5 +1,6 @@
 {
   "table_name": "mathematicians",
+  "title": "Mathematicians",
   "description": "Famous mathematicians and their contributions",
   "columns": [
     {

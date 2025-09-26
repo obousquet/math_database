@@ -12,16 +12,16 @@ def render_row(data, data_dir):
     # Make the whole card clickable, linking to the row page
     row_link = f"{data['short_name']}.html" if data.get('short_name') else None
     if row_link:
-        title_html = f'<h3><a href="{row_link}" class="mathematician-title-link">{data["name"]} {lifespan}</a></h3>'
+        title_html = f'<h3><a href="{row_link}" class="table-title-link">{data["name"]} {lifespan}</a></h3>'
     else:
         title_html = f'<h3>{data["name"]} {lifespan}</h3>'
     html = f'''
-    <div class="mathematician-card" id="math-{data['id']}">
+    <div class="table-card" id="math-{data['id']}">
         {title_html}
-        <div class="mathematician-details">
+        <div class="table-details">
             {f'<p><strong>Nationality:</strong> {data["nationality"]}</p>' if data.get('nationality') else ''}
-            {render_list_section(data.get('contributions', []), 'Major Contributions', 'contributions') if data.get('contributions') else ''}
-            {f'<div class="biography"><strong>Biography:</strong><p>{data["biography"]}</p></div>' if data.get('biography') else ''}
+            {render_list_section(data.get('contributions', []), 'Major Contributions') if data.get('contributions') else ''}
+            {f'<div class="text-field"><strong>Biography:</strong><p>{data["biography"]}</p></div>' if data.get('biography') else ''}
         </div>
     </div>
     '''
@@ -46,12 +46,12 @@ def render_table_page(rows, schema, data_dir):
 def render_row_page(row, schema, data_dir):
     """Render a standalone HTML page for a single mathematician row."""
     content = render_row(row, data_dir=data_dir)
-    back_link = '<div class="back-link"><a href="index.html">&larr; Back to Mathematicians Table</a></div>'
+    back_link = '<div class="back-link-light"><a href="index.html">&larr; Back to Mathematicians Table</a></div>'
     content = back_link + render_row(row, data_dir=data_dir)
     return render_base_page_template(
         title=f"{row.get('name', 'Mathematician')} - Math Database",
         table_name="mathematicians",
-        other_tables=["equations", "mathematicians"],
+        other_tables=["equations"],
         content=content,
         data_dir=data_dir,
         use_mathjax=False
