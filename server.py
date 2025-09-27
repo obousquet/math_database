@@ -45,7 +45,10 @@ def delete_entry(table, entry_id):
     """Delete a JSON entry file from the appropriate table directory and update cache."""
     table_dir = DATA_DIR / table
     # Lookup entry to find the exact filename
+    entry_id = int(entry_id)
     entry = load_utils.lookup_table_entry_by_id(table, entry_id, DATA_DIR)
+    if not entry:
+        return jsonify({"error": f"Entry {entry_id} not found"}), 404
     fname = make_filename(entry)
     file_path = table_dir / fname
     if file_path.exists():

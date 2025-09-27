@@ -165,7 +165,7 @@ def get_delete_js(table_name):
     return f"""
     <script>
     function deleteEntry(entryId) {{
-        if (!confirm('Are you sure you want to delete this entry? This cannot be undone.')) return;
+        if (!confirm('Are you sure you want to delete entry ' + entryId + '? This cannot be undone.')) return;
         fetch('/api/delete_entry/{table_name}/' + entryId, {{ method: 'DELETE' }})
             .then(resp => resp.json())
             .then(data => {{
@@ -383,7 +383,7 @@ def render_entry_form(table_name, schema, entry=None, default_entry=None):
                 const table = document.getElementById('array-table-{name}').querySelector('tbody');
                 const idx = table.children.length;
                 const row = document.createElement('tr');
-                row.innerHTML = `<td><input type='text' value='' data-array-index='${idx}' style='width:100%'></td><td><button type='button' onclick='removeArrayItem_{name}(${idx})'>Remove</button></td>`;
+                row.innerHTML = `<td><input type='text' value='' data-array-index='${{idx}}' style='width:100%'></td><td><button type='button' onclick='removeArrayItem_{name}(${{idx}})'>Remove</button></td>`;
                 table.appendChild(row);
                 row.querySelector('input').addEventListener('input', updateArrayField_{name});
                 updateArrayField_{name}();

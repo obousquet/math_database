@@ -73,7 +73,7 @@ class TableEntriesCache:
         entries.append(entry)
         self._cache[key] = entries
 
-    def remove(self, table, data_dir, entry_id):
+    def remove(self, table, data_dir, entry_id: int | str):
         key = (str(table), str(data_dir))
         entries = self.get(table, data_dir)
         new_entries = [e for e in entries if e.get('id') != entry_id and e.get('short_name') != entry_id]
@@ -145,7 +145,7 @@ def lookup_table_entry_by_short_name(table, short_name, data_dir):
     return d.get(short_name)
 
 
-def lookup_table_entry_by_id(table, id_value, data_dir):
+def lookup_table_entry_by_id(table, id_value: int, data_dir: str):
     """Lookup a table entry by its id. Returns the entry dict or None."""
     d = get_table_dict_by_id(table, data_dir)
     return d.get(id_value)
