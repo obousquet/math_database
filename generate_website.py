@@ -100,6 +100,16 @@ def main():
         print(f"Error: Data directory {data_dir} not found")
         sys.exit(1)
 
+    # Remove all files and folders in output_dir for a clean build
+    for item in output_dir.iterdir():
+        if item.is_dir():
+            for subitem in item.rglob('*'):
+                if subitem.is_file():
+                    subitem.unlink()
+            item.rmdir()
+        else:
+            item.unlink()
+
     print(f"Generating website from {data_dir} to {output_dir}")
     tables_info = load_utils.get_table_infos(data_dir)
     successful_tables = 0
