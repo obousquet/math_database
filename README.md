@@ -32,9 +32,21 @@ data/
 2. **Define schema**: Add `schema.json` files describing your data structure
 3. **Create render modules**: Add `render_[table_name].py` files for HTML generation
 4. **Add data records**: Create JSON files for individual records
-5. **Generate website**: Run `python generate_website.py`
+5. **Generate website**: Run the generator with the following command:
 
-The generated website will be placed in the `docs/` directory, ready for GitHub Pages.
+   ```bash
+   python generate_website.py DATA_DIR [--output_dir OUTPUT_DIR]
+   ```
+
+   - `DATA_DIR` (required): Path to your data directory (e.g. `data/`)
+   - `--output_dir OUTPUT_DIR` (optional): Path to the output directory (default: `../docs` relative to your data directory)
+
+   Example:
+   ```bash
+   python generate_website.py data/ --output_dir docs/
+   ```
+
+The generated website will be placed in the output directory, ready for GitHub Pages.
 
 ## Example Data Structure
 
@@ -143,3 +155,34 @@ This repository includes example data for:
 - Edit render modules to customize HTML output
 - Add new tables by creating new subdirectories in `data/`
 - Extend the main generator script for additional functionality
+
+## Static vs Server Mode for Entry Forms
+
+You can use the entry forms in two modes:
+
+### 1. Static Mode (default)
+- **How it works:** Add/edit forms only allow you to download the JSON file for manual upload.
+- **How to generate:**
+  ```bash
+  python3 generate_website.py data
+  ```
+- **How to use:** Download the JSON file from the form and place it in the appropriate data directory.
+
+### 2. Server Mode (with live saving)
+- **How it works:** Add/edit forms POST the entry to a local server and save the JSON file automatically.
+- **How to generate:**
+  ```bash
+  python3 generate_website.py data --mode server
+  ```
+- **How to run the server:**
+  1. Install requirements:
+     ```bash
+     pip install -r requirements.txt
+     ```
+  2. Start the server:
+     ```bash
+     python3 server.py
+     ```
+  3. Open your browser to [http://localhost:8000](http://localhost:8000) and use the forms to add/edit entries. Entries will be saved directly to the data directory.
+
+- **Note:** The server saves entries to the data directory specified by the `MATHDB_DATA_DIR` environment variable (default: `data/`).

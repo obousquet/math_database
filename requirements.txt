@@ -5,3 +5,4 @@
 #
 # Optional: For development and testing
 # python >= 3.6
+Flask>=2.0

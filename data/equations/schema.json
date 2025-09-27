@@ -6,51 +6,75 @@
     {
       "name": "id",
       "type": "string",
+      "label": "ID",
       "description": "Unique identifier for the equation",
-      "required": true
+      "required": true,
+      "rendered": false
     },
     {
       "name": "name",
-      "type": "string", 
+      "type": "string",
+      "label": "Name",
       "description": "Human-readable name of the equation",
-      "required": true
+      "required": true,
+      "rendered": true
+    },
+    {
+      "name": "short_name",
+      "type": "string",
+      "label": "Short Name",
+      "description": "Short identifier for cross-referencing between tables (e.g., 'quadratic_formula').",
+      "required": true,
+      "rendered": false
     },
     {
       "name": "equation",
-      "type": "string",
+      "type": "latex",
+      "label": "Equation",
       "description": "LaTeX representation of the equation",
-      "required": true
+      "required": true,
+      "rendered": true
     },
     {
       "name": "category",
-      "type": "string",
+      "type": "enum",
+      "label": "Category",
       "description": "Mathematical category (algebra, calculus, geometry, etc.)",
-      "required": true
+      "required": true,
+      "enum": [
+        { "value": "algebra", "display_name": "Algebra" },
+        { "value": "calculus", "display_name": "Calculus" },
+        { "value": "geometry", "display_name": "Geometry" },
+        { "value": "number_theory", "display_name": "Number Theory" },
+        { "value": "trigonometry", "display_name": "Trigonometry" },
+        { "value": "combinatorics", "display_name": "Combinatorics" },
+        { "value": "other", "display_name": "Other" }
+      ],
+      "rendered": true
     },
     {
       "name": "description",
-      "type": "string",
+      "type": "text",
+      "label": "Description",
       "description": "Detailed description of the equation and its applications",
-      "required": false
+      "required": false,
+      "rendered": true
     },
     {
       "name": "applications",
       "type": "array",
+      "label": "Applications",
       "description": "List of real-world applications",
-      "required": false
-    }
-    ,
-    {
-      "name": "short_name",
-      "type": "string",
-      "description": "Short identifier for cross-referencing between tables (e.g., 'quadratic_formula').",
-      "required": true
+      "required": false,
+      "rendered": true
     },
     {
       "name": "author",
       "type": "string",
+      "label": "Author",
       "description": "Short name of the mathematician who authored or is most associated with this equation (for cross-reference).",
-      "required": false
+      "required": false,
+      "rendered": true
     }
   ]
 }

@@ -6,51 +6,66 @@
     {
       "name": "id",
       "type": "string",
+      "label": "ID",
       "description": "Unique identifier for the mathematician",
-      "required": true
+      "required": true,
+      "rendered": false
     },
     {
       "name": "name",
       "type": "string",
+      "label": "Name",
       "description": "Full name of the mathematician",
-      "required": true
+      "required": true,
+      "rendered": true
+    },
+    {
+      "name": "short_name",
+      "type": "string",
+      "label": "Short Name",
+      "description": "Short identifier for cross-referencing between tables (e.g., 'euler').",
+      "required": true,
+      "rendered": false
     },
     {
       "name": "birth_year",
       "type": "integer",
+      "label": "Birth Year",
       "description": "Year of birth",
-      "required": false
+      "required": false,
+      "rendered": false
     },
     {
       "name": "death_year",
       "type": "integer",
+      "label": "Death Year",
       "description": "Year of death (null if still alive)",
-      "required": false
+      "required": false,
+      "rendered": false
     },
     {
       "name": "nationality",
       "type": "string",
+      "label": "Nationality",
       "description": "Country of origin",
-      "required": false
+      "required": false,
+      "rendered": true
     },
     {
       "name": "contributions",
       "type": "array",
+      "label": "Major Contributions",
       "description": "List of major mathematical contributions",
-      "required": true
+      "required": true,
+      "rendered": true
     },
     {
       "name": "biography",
-      "type": "string",
+      "type": "text",
+      "label": "Biography",
       "description": "Brief biography",
-      "required": false
-    }
-    ,
-    {
-      "name": "short_name",
-      "type": "string",
-      "description": "Short identifier for cross-referencing between tables (e.g., 'euler').",
-      "required": true
+      "required": false,
+      "rendered": true
     }
   ]
 }

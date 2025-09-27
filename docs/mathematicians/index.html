@@ -7,6 +7,15 @@
         <title>Famous mathematicians and their contributions - Demo Database</title>
         <link rel="stylesheet" href="../styles.css">
         
+        <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+        <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+        <script>
+            window.MathJax = {
+                tex: {
+                    inlineMath: [['$', '$'], ['\(', '\)']],
+                    displayMath: [['$$', '$$'], ['\[', '\]']]
+                }
+            };</script>
     </head>
     <body>
         <header>
@@ -27,49 +36,64 @@
     <div class="table-card" id="math-001">
         <h3><a href="euler.html" class="table-title-link">Leonhard Euler (1707 - 1783)</a></h3>
         <div class="table-details">
-            <p><strong>Nationality:</strong> Swiss</p>
-            
-    <div class="fields">
-        <strong>Major Contributions:</strong>
-        <ul class='fields-list'><li>Euler's identity</li><li>Graph theory</li><li>Number theory</li><li>Calculus of variations</li><li>Topology</li></ul>
+        <p><strong>Name:</strong>Leonhard Euler</p>
+<p><strong>Nationality:</strong>Swiss</p>
+<p><strong>Major Contributions:</strong><ul class='fields-list'><li>Euler's identity</li><li>Graph theory</li><li>Number theory</li><li>Calculus of variations</li><li>Topology</li></ul></p>
+<strong>Biography:</strong>
+    <div class="text-field"><p>One of the most prolific mathematicians in history, Euler made groundbreaking contributions to nearly every area of mathematics. He introduced much of the mathematical notation still used today and solved many important problems in analysis, number theory, and mechanics.</p>
     </div>
     
-            <div class="text-field"><strong>Biography:</strong><p>One of the most prolific mathematicians in history, Euler made groundbreaking contributions to nearly every area of mathematics. He introduced much of the mathematical notation still used today and solved many important problems in analysis, number theory, and mechanics.</p></div>
+
         </div>
+        
     </div>
     
     <div class="table-card" id="math-002">
         <h3><a href="newton.html" class="table-title-link">Isaac Newton (1643 - 1727)</a></h3>
         <div class="table-details">
-            <p><strong>Nationality:</strong> English</p>
-            
-    <div class="fields">
-        <strong>Major Contributions:</strong>
-        <ul class='fields-list'><li>Calculus</li><li>Laws of motion</li><li>Universal gravitation</li><li>Binomial theorem</li><li>Method of fluxions</li></ul>
+        <p><strong>Name:</strong>Isaac Newton</p>
+<p><strong>Nationality:</strong>English</p>
+<p><strong>Major Contributions:</strong><ul class='fields-list'><li>Calculus</li><li>Laws of motion</li><li>Universal gravitation</li><li>Binomial theorem</li><li>Method of fluxions</li></ul></p>
+<strong>Biography:</strong>
+    <div class="text-field"><p>Newton revolutionized mathematics and physics with his development of calculus and laws of motion. His work laid the foundation for classical mechanics and much of modern mathematics.</p>
     </div>
     
-            <div class="text-field"><strong>Biography:</strong><p>Newton revolutionized mathematics and physics with his development of calculus and laws of motion. His work laid the foundation for classical mechanics and much of modern mathematics.</p></div>
+
         </div>
+        
     </div>
     
     <div class="table-card" id="math-003">
         <h3><a href="gauss.html" class="table-title-link">Carl Friedrich Gauss (1777 - 1855)</a></h3>
         <div class="table-details">
-            <p><strong>Nationality:</strong> German</p>
-            
-    <div class="fields">
-        <strong>Major Contributions:</strong>
-        <ul class='fields-list'><li>Number theory</li><li>Differential geometry</li><li>Statistics</li><li>Analysis</li><li>Astronomy</li></ul>
+        <p><strong>Name:</strong>Carl Friedrich Gauss</p>
+<p><strong>Nationality:</strong>German</p>
+<p><strong>Major Contributions:</strong><ul class='fields-list'><li>Number theory</li><li>Differential geometry</li><li>Statistics</li><li>Analysis</li><li>Astronomy</li></ul></p>
+<strong>Biography:</strong>
+    <div class="text-field"><p>Known as the 'Prince of Mathematics', Gauss made significant contributions to many fields including number theory, statistics, analysis, differential geometry, geodesy, geophysics, mechanics, electrostatics, astronomy, matrix theory, and optics.</p>
     </div>
     
-            <div class="text-field"><strong>Biography:</strong><p>Known as the 'Prince of Mathematics', Gauss made significant contributions to many fields including number theory, statistics, analysis, differential geometry, geodesy, geophysics, mechanics, electrostatics, astronomy, matrix theory, and optics.</p></div>
+
         </div>
+        
     </div>
     
             </div>
     
         </main>
         
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                const equations = document.querySelectorAll('.latex-equation');
+                equations.forEach(eq => {
+                    const latex = eq.getAttribute('data-latex');
+                    eq.innerHTML = '$$' + latex + '$$';
+                });
+                if (window.MathJax) {
+                    MathJax.typesetPromise();
+                }
+            });
+        </script>
     </body>
     </html>
     
