@@ -1,6 +1,7 @@
 {
   "id": 2,
   "name": "Isaac Newton",
+  "short_name": "newton",
   "birth_year": 1643,
   "death_year": 1727,
   "nationality": "English",
@@ -11,7 +12,6 @@
     "Binomial theorem",
     "Method of fluxions"
   ],
-  "biography": "Newton revolutionized mathematics and physics with his development of calculus and laws of motion. His work laid the foundation for classical mechanics and much of modern mathematics."
-  ,
-  "short_name": "newton"
+  "biography": "Newton revolutionized mathematics and physics with his development of calculus and laws of motion. His work laid the foundation for classical mechanics and much of modern mathematics.",
+  "alive": false
 }

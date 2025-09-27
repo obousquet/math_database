@@ -309,6 +309,14 @@ def render_card(table_name, schema, entry, data_dir, mode="static", make_title=N
                 field = render_string_field(col_label, col_value, table_name, data_dir)
             case 'integer':
                 field = f'<p><strong>{col_label}:</strong> {str(col_value) if col_value is not None else ""}</p>'
+            case 'boolean':
+                if col_value is True:
+                    display = "Yes"
+                elif col_value is False:
+                    display = "No"
+                else:
+                    display = "Unspecified"
+                field = f'<p><strong>{col_label}:</strong> {display}</p>'
             case 'text':
                 field = render_text_field(col_label, col_value, data_dir)
             case 'latex':
@@ -443,6 +451,23 @@ def render_entry_form(table_name, schema, entry=None, default_entry=None):
             }});
             </script>
             """
+        elif col_type == 'boolean':
+            # Render as a select dropdown for three states
+            options = [
+                ("", "Unspecified"),
+                ("true", "Yes"),
+                ("false", "No")
+            ]
+            selected = ""
+            if value is True:
+                selected = "true"
+            elif value is False:
+                selected = "false"
+            input_html = f"<select id='{name}' name='{name}'>"
+            for opt_val, opt_label in options:
+                sel = "selected" if selected == opt_val else ""
+                input_html += f"<option value='{opt_val}' {sel}>{opt_label}</option>"
+            input_html += "</select>"
         elif col_type == 'integer':
             input_html = f"<input type='number' id='{name}' name='{name}' value='{value}' {required_attr}>"
         elif col_type == 'enum':
@@ -474,6 +499,15 @@ def render_entry_form(table_name, schema, entry=None, default_entry=None):
             if (!el.name) continue;
             if (el.type === 'number') {{
                 data[el.name] = el.value ? Number(el.value) : null;
+            }} else if (el.tagName === 'SELECT' && (el.options.length === 3) && (el.options[0].text === 'Unspecified')) {{
+                // Boolean select
+                if (el.value === "true") {{
+                    data[el.name] = true;
+                }} else if (el.value === "false") {{
+                    data[el.name] = false;
+                }} else {{
+                    data[el.name] = null;
+                }}
             }} else if (el.type === 'hidden' && el.value && el.name && el.value.startsWith('[')) {{
                 // Parse JSON array for array fields
                 try {{

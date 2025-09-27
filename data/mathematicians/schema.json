@@ -74,6 +74,14 @@
       "description": "Brief biography",
       "required": false,
       "rendered": true
+    },
+    {
+      "name": "alive",
+      "type": "boolean",
+      "label": "Alive",
+      "description": "Is the mathematician still alive?",
+      "required": false,
+      "rendered": true
     }
   ]
 }
