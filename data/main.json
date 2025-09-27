@@ -3,5 +3,6 @@
   "header": "Mathematics Demo Database",
   "subtitle": "A simple demo for illustration",
   "description": "Welcome to the Mathematics Demo Database!",
-  "footer": "Generated with Python • Hosted on GitHub Pages"
+  "footer": "Generated with Python • Hosted on GitHub Pages",
+  "homepage": "https://github.com/obousquet/math_database"
 }

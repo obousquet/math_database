@@ -8,6 +8,7 @@ import json
 from pathlib import Path
 import load_utils
 import re
+import markdown
 
 def render_list_section(items, title):
     """Render a list of items as an HTML section with title."""
@@ -49,16 +50,13 @@ def render_text_field(label, text, data_dir):
     def hashtag_replacer(match):
         hashtag = match.group(0)
         return maybe_linked(hashtag, data_dir)
-    # Find hashtags: #word or #table/word
     hashtag_pattern = r'#\w+(?:/\w+)?'
     linked_text = re.sub(hashtag_pattern, hashtag_replacer, text)
-    # LaTeX commands ($...$ or $$...$$) are left intact for MathJax
+    # Render Markdown
+    html_text = markdown.markdown(linked_text, extensions=['extra', 'sane_lists'])
     if label:
         result += f"<strong>{label}:</strong>"
-    result += f"""
-    <div class="text-field"><p>{linked_text}</p>
-    </div>
-    """
+    result += f"<div class=\"text-field\">{html_text}</div>"
     return result
 
 def render_string_field(label, text, table_name, data_dir):
@@ -103,6 +101,10 @@ def render_base_page_template(title, table_name, content, data_dir, extra_head="
     """Render the base HTML page template with common structure."""
     # Generate navigation links
     nav_links = ['<a href="../index.html">Home</a>']
+    main_json = load_utils.get_main_json(data_dir)
+    homepage = main_json.get("homepage")
+    if homepage:
+        nav_links.append(f'<a href="{homepage}" target="_blank">About</a>')
     all_tables = load_utils.get_table_infos(data_dir)
     for table, info in sorted(all_tables.items(), key=lambda v: v[1]['name']):
         nav_links.append(f'<a href="../{table}/index.html">{info["name"]}</a>')
@@ -622,6 +624,12 @@ def render_main_index_html(tables_info, data_dir):
             <p class=\"record-count\">{count} records</p>
         </div>
         """
+    # Navigation bar with About link
+    nav_links = ['<a href="index.html">Home</a>']
+    homepage = main_info.get("homepage")
+    if homepage:
+        nav_links.append(f'<a href="{homepage}" target="_blank">About</a>')
+    nav_html = "\n                ".join(nav_links)
     return f"""
     <!DOCTYPE html>
     <html lang=\"en\">
@@ -635,6 +643,9 @@ def render_main_index_html(tables_info, data_dir):
         <header>
             <h1>{main_info['header']}</h1>
             <p>{main_info['subtitle']}</p>
+            <nav>
+                {nav_html}
+            </nav>
         </header>
         <main class=\"main-container\">
             <div class=\"intro\">

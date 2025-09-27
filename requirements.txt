@@ -1,3 +1,4 @@
+markdown
 # Math Database HTML Generator Requirements
 # 
 # This project uses only Python standard library modules
@@ -6,3 +7,4 @@
 # Optional: For development and testing
 # python >= 3.6
 Flask>=2.0
+markdown
