@@ -60,6 +60,14 @@
       "rendered": true
     },
     {
+      "name": "author_of",
+      "type": "reference",
+      "label": "Author Of",
+      "table": "equations",
+      "column": "author",
+      "rendered": true
+    },
+    {
       "name": "biography",
       "type": "text",
       "label": "Biography",

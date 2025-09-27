@@ -1,17 +1,15 @@
 {
   "id": 1,
   "name": "Quadratic Formula",
+  "short_name": "quadratic_formula",
   "equation": "x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}",
   "category": "algebra",
-  "description": "The quadratic formula provides the solutions to any quadratic equation of the form ax² + bx + c = 0.",
+  "description": "The quadratic formula provides the solutions to any quadratic equation of the form $ax^2 + bx + c = 0$.",
   "applications": [
     "Solving quadratic equations",
     "Finding roots of parabolas",
     "Optimization problems",
     "Physics projectile motion"
-  ]
-  ,
-  "short_name": "quadratic_formula"
-  ,
+  ],
   "author": ""
 }

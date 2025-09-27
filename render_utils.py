@@ -79,8 +79,8 @@ def get_mathjax_head():
         <script>
             window.MathJax = {
                 tex: {
-                    inlineMath: [['$', '$'], ['\\(', '\\)']],
-                    displayMath: [['$$', '$$'], ['\\[', '\\]']]
+                    inlineMath: [['$', '$'], ['\\\\(', '\\\\)']],
+                    displayMath: [['$$', '$$'], ['\\\\[', '\\\\]']]
                 }
             };</script>"""
 
@@ -209,6 +209,20 @@ def render_table_content(rows_html, schema):
             </div>
     """
 
+def match(reference, entry, table=None):
+    if not isinstance(reference, str) or not reference.startswith('#'):
+        return False
+    key = reference[1:]
+    if '/' in key:
+        table_ref, short_name_or_id = key.split('/', 1)
+        if table and table != table_ref:
+            return False
+    else:
+        short_name_or_id = key
+    if short_name_or_id.isdigit():
+        return entry.get('id') == int(short_name_or_id)
+    return entry.get('short_name') == short_name_or_id
+
 def maybe_linked(value, data_dir):
     """
     If value starts with #, link to an entry:
@@ -309,6 +323,29 @@ def render_card(table_name, schema, entry, data_dir, mode="static", make_title=N
                         items_html += f"<li>{maybe_linked(item, data_dir=data_dir)}</li>"
                     items_html += "</ul>"
                     field += items_html + '</p>'
+            case 'reference':
+                # Reference fields: auto-populate from another table/column
+                ref_table = col.get('table')
+                ref_column = col.get('column')
+                if ref_table and ref_column:
+                    # Find all entries in ref_table where ref_column == entry['short_name'] or entry['id']
+                    ref_entries = []
+                    for ref_entry in load_utils.get_table_entries(ref_table, data_dir):
+                        if match(ref_entry.get(ref_column), entry, table=table_name):
+                            ref_entries.append(ref_entry)
+                    if ref_entries:
+                        # Display as a list of links or names
+                        items_html = "<ul class='fields-list'>"
+                        for ref_entry in ref_entries:
+                            display = ref_entry.get('name', ref_entry.get('short_name', str(ref_entry.get('id', ''))))
+                            link = f"../{ref_table}/{ref_entry.get('short_name', ref_entry.get('id'))}.html"
+                            items_html += f"<li><a href='{link}'>{display}</a></li>"
+                        items_html += "</ul>"
+                        field = f'<p><strong>{col_label}:</strong>{items_html}</p>'
+                    else:
+                        field = f'<p><strong>{col_label}:</strong> <em>None</em></p>'
+                else:
+                    field = f'<p><strong>{col_label}:</strong> <em>Invalid reference config</em></p>'
         card_content += field + '\n'
     html = f"""
     <div class="table-card" id="math-{entry['id']}" style="position:relative;">
@@ -335,6 +372,8 @@ def render_entry_form(table_name, schema, entry=None, default_entry=None):
         name = col['name']
         label = col.get('label', name)
         col_type = col.get('type', 'string')
+        if col_type == 'reference':
+            continue
         required = col.get('required', False)
         desc = col.get('description', '')
         if entry is not None:
@@ -421,6 +460,8 @@ def render_entry_form(table_name, schema, entry=None, default_entry=None):
             input_html = f"<textarea id='{name}' name='{name}' rows='4' cols='50' {required_attr}>{value}</textarea>"
         elif col_type == 'latex':
             input_html = f"<input type='text' id='{name}' name='{name}' value='{value}' {required_attr}>"
+        elif col_type == 'reference':
+            pass
         else:
             raise ValueError(f"Unsupported column type: {col_type}")
         form_fields += f"<div class='form-field'>{label}<br>{input_html}<br>{helptext}</div>"

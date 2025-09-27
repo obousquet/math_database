@@ -61,9 +61,6 @@ def generate_table_html(table_name, table_path, data_dir, output_dir):
     """Generate all HTML files for a single table (index, add, row, edit)."""
     print(f"Processing table: {table_name}")
     data_rows, schema = load_utils.get_table_data(table_name, data_dir)
-    if not data_rows:
-        print(f"No data found for table {table_name}")
-        return False
     render_module = load_utils.load_render_module(table_path, table_name)
     make_title = getattr(render_module, 'make_title', None) if render_module else None
     table_output_dir = output_dir / table_name

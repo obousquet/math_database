@@ -1,7 +1,10 @@
 """
 Simple server for Math Database: supports form POST to save JSON files in server mode.
 """
+
 import os
+import sys
+import argparse
 from flask import Flask, request, jsonify, Response, abort
 from pathlib import Path
 
@@ -9,9 +12,6 @@ import render_utils
 import load_utils
 
 app = Flask(__name__)
-
-# Set the data directory (relative to this script)
-DATA_DIR = Path(os.environ.get("MATHDB_DATA_DIR", "data")).resolve()
 
 def make_filename(entry):
     """Generate a filename for a JSON entry based on its id and short_name."""
@@ -115,4 +115,16 @@ def serve_css():
     return Response(css, mimetype='text/css')
 
 if __name__ == "__main__":
+
+    # Parse command-line arguments for data directory
+    parser = argparse.ArgumentParser(description="Math Database Server")
+    parser.add_argument('--data-dir', type=str, default=None, help='Path to data directory')
+    args, _ = parser.parse_known_args()
+
+    # Set the data directory (priority: CLI > env > default)
+    if args.data_dir:
+        DATA_DIR = Path(args.data_dir).resolve()
+    else:
+        DATA_DIR = Path(os.environ.get("MATHDB_DATA_DIR", "data")).resolve()
+
     app.run(host="0.0.0.0", port=8080, debug=True)
