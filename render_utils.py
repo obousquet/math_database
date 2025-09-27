@@ -3,8 +3,11 @@ Common rendering utilities for HTML generation.
 """
 import functools
 
+import json
+
 from pathlib import Path
 import load_utils
+import re
 
 def render_list_section(items, title):
     """Render a list of items as an HTML section with title."""
@@ -38,14 +41,22 @@ def render_latex_field(label, equation):
     """
     return result
 
-def render_text_field(label, text):
+def render_text_field(label, text, data_dir):
     result = ''
     if not text:
         return result
+    # Replace hashtags with links
+    def hashtag_replacer(match):
+        hashtag = match.group(0)
+        return maybe_linked(hashtag, data_dir)
+    # Find hashtags: #word or #table/word
+    hashtag_pattern = r'#\w+(?:/\w+)?'
+    linked_text = re.sub(hashtag_pattern, hashtag_replacer, text)
+    # LaTeX commands ($...$ or $$...$$) are left intact for MathJax
     if label:
         result += f"<strong>{label}:</strong>"
     result += f"""
-    <div class="text-field"><p>{text}</p>
+    <div class="text-field"><p>{linked_text}</p>
     </div>
     """
     return result
@@ -263,7 +274,7 @@ def render_card(table_name, schema, entry, data_dir, mode="static", make_title=N
         # Icons container for proper layout
         icons_html = f'''<span style="position:absolute; top:8px; right:8px; display:flex; gap:8px; z-index:2;">
             <a href="{edit_target}" class="edit-entry-link" title="Edit Entry" style="font-size:1.2em; text-decoration:none;">✎</a>
-            <span class="delete-entry-btn" style="cursor:pointer; font-size:1.2em;" title="Delete Entry" onclick="deleteEntry('{entry.get('short_name') or entry.get('id')}')">🗑️</span>
+            <span class="delete-entry-btn" style="cursor:pointer; font-size:1.2em;" title="Delete Entry" onclick="deleteEntry({entry.get('id')})">🗑️</span>
         </span>'''
     else:
         icons_html = ""
@@ -285,7 +296,7 @@ def render_card(table_name, schema, entry, data_dir, mode="static", make_title=N
             case 'integer':
                 field = f'<p><strong>{col_label}:</strong> {str(col_value) if col_value is not None else ""}</p>'
             case 'text':
-                field = render_text_field(col_label, col_value)
+                field = render_text_field(col_label, col_value, data_dir)
             case 'latex':
                 field = render_latex_field(col_label, col_value)
             case 'enum':
@@ -336,8 +347,63 @@ def render_entry_form(table_name, schema, entry=None, default_entry=None):
         label = f"<label for='{name}'><strong>{label}</strong> ({col_type})</label>"
         helptext = f"<small>{desc}</small>"
         if col_type == 'array':
-            value_str = ', '.join(value) if isinstance(value, list) else value
-            input_html = f"<input type='text' id='{name}' name='{name}' value='{value_str}' {required_attr} placeholder='Comma-separated list'>"
+            # Render as a table of strings with add/remove/edit controls
+            items = value if isinstance(value, list) else ([] if not value else [value])
+            table_rows = ""
+            import html
+            for idx, item in enumerate(items):
+                escaped_item = html.escape(str(item), quote=True)
+                table_rows += f"""
+                <tr>
+                    <td><input type='text' value='{escaped_item}' data-array-index='{idx}' style='width:100%'></td>
+                    <td>
+                        <button type='button' onclick='removeArrayItem_{name}({idx})'>Remove</button>
+                    </td>
+                </tr>
+                """
+            input_html = f"""
+            <table id='array-table-{name}' class='array-table'>
+                <tbody>
+                    {table_rows}
+                </tbody>
+            </table>
+            <button type='button' onclick='addArrayItem_{name}()'>Add Item</button>
+            <input type='hidden' id='{name}' name='{name}' value='{json.dumps(items)}'>
+            <script>
+            function updateArrayField_{name}() {{
+                const table = document.getElementById('array-table-{name}');
+                const items = [];
+                for (const row of table.querySelectorAll('tbody tr')) {{
+                    const input = row.querySelector('input[type="text"]');
+                    if (input && input.value.trim()) items.push(input.value.trim());
+                }}
+                document.getElementById('{name}').value = JSON.stringify(items);
+            }}
+            function addArrayItem_{name}() {{
+                const table = document.getElementById('array-table-{name}').querySelector('tbody');
+                const idx = table.children.length;
+                const row = document.createElement('tr');
+                row.innerHTML = `<td><input type='text' value='' data-array-index='${idx}' style='width:100%'></td><td><button type='button' onclick='removeArrayItem_{name}(${idx})'>Remove</button></td>`;
+                table.appendChild(row);
+                row.querySelector('input').addEventListener('input', updateArrayField_{name});
+                updateArrayField_{name}();
+            }}
+            function removeArrayItem_{name}(idx) {{
+                const table = document.getElementById('array-table-{name}').querySelector('tbody');
+                const rows = Array.from(table.children);
+                if (rows[idx]) table.removeChild(rows[idx]);
+                updateArrayField_{name}();
+            }}
+            // Attach listeners to existing inputs
+            document.addEventListener('DOMContentLoaded', function() {{
+                const table = document.getElementById('array-table-{name}').querySelector('tbody');
+                for (const input of table.querySelectorAll('input[type="text"]')) {{
+                    input.addEventListener('input', updateArrayField_{name});
+                }}
+                updateArrayField_{name}();
+            }});
+            </script>
+            """
         elif col_type == 'integer':
             input_html = f"<input type='number' id='{name}' name='{name}' value='{value}' {required_attr}>"
         elif col_type == 'enum':
@@ -362,13 +428,18 @@ def render_entry_form(table_name, schema, entry=None, default_entry=None):
     js = f'''
     <script>
     function formToJSON(form) {{
-        const data = {{}};
+        const data = {{}};  // Initialize as an empty object
         for (const el of form.elements) {{
             if (!el.name) continue;
             if (el.type === 'number') {{
                 data[el.name] = el.value ? Number(el.value) : null;
-            }} else if (el.placeholder === 'Comma-separated list') {{
-                data[el.name] = el.value ? el.value.split(',').map(s => s.trim()).filter(Boolean) : [];
+            }} else if (el.type === 'hidden' && el.value && el.name && el.value.startsWith('[')) {{
+                // Parse JSON array for array fields
+                try {{
+                    data[el.name] = JSON.parse(el.value);
+                }} catch (err) {{
+                    data[el.name] = [];
+                }}
             }} else {{
                 data[el.name] = el.value;
             }}

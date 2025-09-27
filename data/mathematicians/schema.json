@@ -5,7 +5,7 @@
   "columns": [
     {
       "name": "id",
-      "type": "string",
+      "type": "integer",
       "label": "ID",
       "description": "Unique identifier for the mathematician",
       "required": true,

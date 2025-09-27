@@ -13,17 +13,23 @@ app = Flask(__name__)
 # Set the data directory (relative to this script)
 DATA_DIR = Path(os.environ.get("MATHDB_DATA_DIR", "data")).resolve()
 
+def make_filename(entry):
+    """Generate a filename for a JSON entry based on its id and short_name."""
+    id = entry.get("id")
+    id = f"{id:03}"
+    if entry.get("short_name", ""):
+        filename = f'{id}_{entry.get("short_name")}.json'
+    else:
+        filename = f'{id}.json'
+    return filename
+
 @app.route('/api/save_entry/<table>', methods=['POST'])
 def save_entry(table):
     """Save a JSON entry to the appropriate table directory and update cache."""
     if not request.is_json:
         return jsonify({"error": "Request must be JSON"}), 400
     entry = request.get_json()
-    # Determine filename: prefer short_name, fallback to id
-    filename = entry.get('short_name') or entry.get('id')
-    if not filename:
-        return jsonify({"error": "Entry must have 'short_name' or 'id'"}), 400
-    filename = f"{filename}.json"
+    filename = make_filename(entry)
     table_dir = DATA_DIR / table
     table_dir.mkdir(parents=True, exist_ok=True)
     file_path = table_dir / filename
@@ -38,17 +44,18 @@ def save_entry(table):
 def delete_entry(table, entry_id):
     """Delete a JSON entry file from the appropriate table directory and update cache."""
     table_dir = DATA_DIR / table
-    # Try both short_name and id
-    for fname in [f"{entry_id}.json"]:
-        file_path = table_dir / fname
-        if file_path.exists():
-            try:
-                file_path.unlink()
-                # Update cache
-                load_utils.get_table_entries_cache().remove(table, DATA_DIR, entry_id)
-                return jsonify({"success": True, "deleted": fname})
-            except Exception as e:
-                return jsonify({"error": str(e)}), 500
+    # Lookup entry to find the exact filename
+    entry = load_utils.lookup_table_entry_by_id(table, entry_id, DATA_DIR)
+    fname = make_filename(entry)
+    file_path = table_dir / fname
+    if file_path.exists():
+        try:
+            file_path.unlink()
+            # Update cache
+            load_utils.get_table_entries_cache().remove(table, DATA_DIR, entry_id)
+            return jsonify({"success": True, "deleted": fname})
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
     return jsonify({"error": "Entry not found"}), 404
 
 

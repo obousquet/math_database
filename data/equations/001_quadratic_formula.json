@@ -1,5 +1,5 @@
 {
-  "id": "001",
+  "id": 1,
   "name": "Quadratic Formula",
   "equation": "x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}",
   "category": "algebra",

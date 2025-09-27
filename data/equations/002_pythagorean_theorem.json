@@ -1,5 +1,5 @@
 {
-  "id": "002",
+  "id": 2,
   "name": "Pythagorean Theorem",
   "equation": "a^2 + b^2 = c^2",
   "category": "geometry",

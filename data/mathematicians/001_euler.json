@@ -1,17 +1,16 @@
 {
-  "id": "001",
+  "id": 1,
   "name": "Leonhard Euler",
+  "short_name": "euler",
   "birth_year": 1707,
   "death_year": 1783,
   "nationality": "Swiss",
   "contributions": [
-    "Euler's identity",
+    "#eulers_identity",
     "Graph theory",
     "Number theory",
     "Calculus of variations",
     "Topology"
   ],
   "biography": "One of the most prolific mathematicians in history, Euler made groundbreaking contributions to nearly every area of mathematics. He introduced much of the mathematical notation still used today and solved many important problems in analysis, number theory, and mechanics."
-  ,
-  "short_name": "euler"
 }
