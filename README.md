@@ -32,21 +32,33 @@ data/
 2. **Define schema**: Add `schema.json` files describing your data structure
 3. **Create render modules**: Add `render_[table_name].py` files for HTML generation
 4. **Add data records**: Create JSON files for individual records
-5. **Generate website**: Run the generator with the following command:
+5. **Generate static website**: Run the generator with the following command:
 
-   ```bash
-   python generate_website.py DATA_DIR [--output_dir OUTPUT_DIR]
-   ```
+  ```bash
+  python generate_website.py DATA_DIR [--output_dir OUTPUT_DIR]
+  ```
 
-   - `DATA_DIR` (required): Path to your data directory (e.g. `data/`)
-   - `--output_dir OUTPUT_DIR` (optional): Path to the output directory (default: `../docs` relative to your data directory)
+  - `DATA_DIR` (required): Path to your data directory (e.g. `data/`)
+  - `--output_dir OUTPUT_DIR` (optional): Path to the output directory (default: `../docs` relative to your data directory)
 
-   Example:
-   ```bash
-   python generate_website.py data/ --output_dir docs/
-   ```
+  Example:
+  ```bash
+  python generate_website.py data/ --output_dir docs/
+  ```
 
 The generated website will be placed in the output directory, ready for GitHub Pages.
+
+## Editing Data Locally
+
+To edit the database and preview changes locally, use the server:
+
+```bash
+python server.py
+```
+
+This will start a local server that allows you to add, edit, and delete entries directly in the database via the web interface. All changes are made to your local data directory.
+
+After making local modifications, you can commit and push your changes, then make a pull request (PR) to update the static website on GitHub Pages.
 
 ## Example Data Structure
 
@@ -156,33 +168,8 @@ This repository includes example data for:
 - Add new tables by creating new subdirectories in `data/`
 - Extend the main generator script for additional functionality
 
-## Static vs Server Mode for Entry Forms
+## Workflow Summary
 
-You can use the entry forms in two modes:
-
-### 1. Static Mode (default)
-- **How it works:** Add/edit forms only allow you to download the JSON file for manual upload.
-- **How to generate:**
-  ```bash
-  python3 generate_website.py data
-  ```
-- **How to use:** Download the JSON file from the form and place it in the appropriate data directory.
-
-### 2. Server Mode (with live saving)
-- **How it works:** Add/edit forms POST the entry to a local server and save the JSON file automatically.
-- **How to generate:**
-  ```bash
-  python3 generate_website.py data --mode server
-  ```
-- **How to run the server:**
-  1. Install requirements:
-     ```bash
-     pip install -r requirements.txt
-     ```
-  2. Start the server:
-     ```bash
-     python3 server.py
-     ```
-  3. Open your browser to [http://localhost:8000](http://localhost:8000) and use the forms to add/edit entries. Entries will be saved directly to the data directory.
-
-- **Note:** The server saves entries to the data directory specified by the `MATHDB_DATA_DIR` environment variable (default: `data/`).
+- Use `generate_website.py` to generate static HTML pages for deployment (no editing capability).
+- Use `server.py` to run a local server for editing and previewing the database interactively.
+- After editing locally, commit and push your changes, then make a PR to update the static site on GitHub Pages.
