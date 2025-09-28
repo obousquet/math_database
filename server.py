@@ -23,6 +23,14 @@ def make_filename(entry):
         filename = f'{id}.json'
     return filename
 
+
+# Serve dynamic graph pages for each graph by short_name
+@app.route('/graphs/<short_name>.html')
+def serve_named_graph(short_name):
+    import render_graph_utils
+    html = render_graph_utils.render_named_graph_html(DATA_DIR, short_name)
+    return Response(html, mimetype='text/html')
+
 @app.route('/api/save_entry/<table>', methods=['POST'])
 def save_entry(table):
     """Save a JSON entry to the appropriate table directory and update cache."""
@@ -37,7 +45,7 @@ def save_entry(table):
         import json
         json.dump(entry, f, indent=2, ensure_ascii=False)
     # Update cache
-    load_utils.get_table_entries_cache().update(table, DATA_DIR, entry)
+    load_utils.get_table_entries_cache(DATA_DIR).update(table, entry)
     return jsonify({"success": True, "filename": filename})
 
 @app.route('/api/delete_entry/<table>/<entry_id>', methods=['DELETE'])
@@ -55,7 +63,7 @@ def delete_entry(table, entry_id):
         try:
             file_path.unlink()
             # Update cache
-            load_utils.get_table_entries_cache().remove(table, DATA_DIR, entry_id)
+            load_utils.get_table_entries_cache(DATA_DIR).remove(table, entry_id)
             return jsonify({"success": True, "deleted": fname})
         except Exception as e:
             return jsonify({"error": str(e)}), 500

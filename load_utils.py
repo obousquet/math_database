@@ -3,6 +3,8 @@ from pathlib import Path
 import functools
 import importlib.util
 
+from matplotlib import table
+
 def load_json_file(filepath):
     """Load and parse a JSON file."""
     try:
@@ -18,7 +20,7 @@ def get_table_infos(data_dir):
     """Get information about all tables in the data directory."""
     tables_info = {}
     for table_path in data_dir.iterdir():
-        if table_path.is_dir():
+        if table_path.is_dir() and (table_path / "schema.json").exists():
             table_name = table_path.name
             data_rows, schema = get_table_data(table_name, data_dir)
             if schema:
@@ -44,20 +46,37 @@ def get_main_json(data_dir):
     main_json_path = Path(data_dir) / "main.json"
     return load_json_file(main_json_path) or {}
 
+@functools.cache
+def get_graph_info(short_name, data_dir):
+    # Load main.json
+    main_json = get_main_json(data_dir)
+    graphs = main_json.get("graphs", [])
+    graph_info = next((g for g in graphs if g.get("short_name") == short_name), None)
+    if not graph_info:
+        return f"<div class='error'>Graph '{short_name}' not found.</div>"
+    module_path = Path(data_dir).parent / graph_info["module"]
+    function_name = graph_info["function"]
+    # Dynamically import module and get function
+    spec = importlib.util.spec_from_file_location("graph_mod", module_path)
+    graph_mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(graph_mod)
+    generate_func = getattr(graph_mod, function_name)
+    return generate_func, graph_info
 
 # Explicit cache for table entries
 class TableEntriesCache:
-    def __init__(self):
+    def __init__(self, data_dir=None):
         self._cache = {}  # key: (table, data_dir), value: list of entries
+        self.data_dir = data_dir
 
-    def get(self, table, data_dir):
-        key = (str(table), str(data_dir))
+    def get(self, table):
+        key = str(table)
         if key not in self._cache:
-            self._cache[key] = self._load_entries(table, data_dir)
+            self._cache[key] = self._load_entries(table)
         return self._cache[key]
 
-    def _load_entries(self, table, data_dir):
-        table_dir = Path(data_dir) / table
+    def _load_entries(self, table):
+        table_dir = Path(self.data_dir) / table
         entries = []
         for file in table_dir.glob("*.json"):
             if file.name == "schema.json":
@@ -67,21 +86,15 @@ class TableEntriesCache:
                 entries.append(entry)
         return entries
 
-    def add(self, table, data_dir, entry):
-        key = (str(table), str(data_dir))
-        entries = self.get(table, data_dir)
-        entries.append(entry)
-        self._cache[key] = entries
-
-    def remove(self, table, data_dir, entry_id: int | str):
-        key = (str(table), str(data_dir))
-        entries = self.get(table, data_dir)
+    def remove(self, table, entry_id: int | str):
+        key = str(table)
+        entries = self.get(table)
         new_entries = [e for e in entries if e.get('id') != entry_id and e.get('short_name') != entry_id]
         self._cache[key] = new_entries
 
-    def update(self, table, data_dir, entry):
-        key = (str(table), str(data_dir))
-        entries = self.get(table, data_dir)
+    def update(self, table, entry):
+        key = str(table)
+        entries = self.get(table)
         entry_id = entry.get('id') or entry.get('short_name')
         updated = False
         for i, e in enumerate(entries):
@@ -93,20 +106,48 @@ class TableEntriesCache:
             entries.append(entry)
         self._cache[key] = entries
 
-    def clear(self, table, data_dir):
-        key = (str(table), str(data_dir))
-        if key in self._cache:
-            del self._cache[key]
+    def lookup(self, ref: str):
+        """Lookup an entry by #id or #short_name or #table/id or #table/short_name."""
+        if not ref.startswith('#'):
+            return None, None
+        ref = ref[1:]
+        if '/' in ref:
+            table, id_part = ref.split('/', 1)
+            entries = self.get(table)
+            for entry in entries:
+                if id_part.isdigit():
+                    if entry.get('id') == int(id_part):
+                        return table, entry
+                if entry.get('short_name') == id_part:
+                    return table, entry
+            return None, None
+        for table, entries in self._cache.items():
+            for entry in entries:
+                if ref.isdigit():
+                    if entry.get('id') == int(ref):
+                        return table, entry
+                if entry.get('short_name') == ref:
+                    return table, entry
+        return None, None
+
+    def get_url(self, ref: str):
+        """Return a markdown link if ref is found, else just the ref text."""
+        table, entry = self.lookup(ref)
+        if entry:
+            key = entry.get('short_name', entry.get('id'))
+            return f'/{table}/{key}.html', entry
+        return None, None
+
 
 @functools.cache  # We use this to ensure a singleton instance
-def get_table_entries_cache():
+def get_table_entries_cache(data_dir=None):
     # Singleton cache instance
-    table_entries_cache = TableEntriesCache()
+    table_entries_cache = TableEntriesCache(data_dir)
     return table_entries_cache
 
 def get_table_entries(table, data_dir):
     """Get all entries for a table, using explicit cache."""
-    return get_table_entries_cache().get(table, data_dir)
+    return get_table_entries_cache(data_dir).get(table)
 
 def get_table_dict_by_short_name(table, data_dir):
     """Return a dict mapping short_name to entry for a table."""

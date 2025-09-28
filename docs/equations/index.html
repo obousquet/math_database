@@ -7,6 +7,31 @@
         <title>Mathematical equations and their properties - Demo Database</title>
         <link rel="stylesheet" href="../styles.css">
         
+    <style>
+    .nav-menu { display:inline-block; position:relative; margin-left:1em; }
+    .menu-btn { background:none; border:none; font-size:1em; cursor:pointer; padding:0.2em 0.7em; color:#fff; }
+    .menu-list { position:absolute; left:0; top:100%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border:1px solid #444; min-width:120px; z-index:10; list-style:none; margin:0; padding:0; box-shadow:0 2px 8px rgba(0,0,0,0.08); }
+    .menu-list li a { display:block; padding:0.4em 1em; text-decoration:none; color:#fff; }
+    .menu-list li a:hover { background:#444; color:#fff; }
+    nav a { color:#fff; }
+    </style>
+    <script>
+    function toggleMenu(id) {
+        var menu = document.getElementById(id);
+        var isOpen = menu.style.display === 'block';
+        // Close all menus
+        document.querySelectorAll('.menu-list').forEach(function(m) { m.style.display = 'none'; });
+        menu.style.display = isOpen ? 'none' : 'block';
+    }
+    // Close menus when clicking outside
+    document.addEventListener('click', function(e) {
+        if (!e.target.classList.contains('menu-btn')) {
+            document.querySelectorAll('.menu-list').forEach(function(m) { m.style.display = 'none'; });
+        }
+    });
+    </script>
+    
+        
         <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
         <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
         <script>
@@ -22,8 +47,17 @@
             <h1>Mathematical equations and their properties - Demo Database</h1>
             <nav>
                 <a href="../index.html">Home</a>
-                <a href="../equations/index.html">Equations</a>
-                <a href="../mathematicians/index.html">Mathematicians</a>
+                <a href="https://github.com/obousquet/math_database" target="_blank">About</a>
+        <div class="nav-menu">
+            <button class="menu-btn" onclick="toggleMenu('graphs-menu')" aria-haspopup="true" aria-expanded="false">Graphs ▼</button>
+            <ul id="graphs-menu" class="menu-list" style="display:none;"><li><a href="../graphs/main.html">Main Graph</a></li></ul>
+        </div>
+    
+        <div class="nav-menu">
+            <button class="menu-btn" onclick="toggleMenu('tables-menu')" aria-haspopup="true" aria-expanded="false">Tables ▼</button>
+            <ul id="tables-menu" class="menu-list" style="display:none;"><li><a href="../equations/index.html">Equations</a></li><li><a href="../mathematicians/index.html">Mathematicians</a></li></ul>
+        </div>
+    
             </nav>
         </header>
         <main class="table-container">
@@ -46,10 +80,7 @@
     </div>
     
 <p><strong>Category:</strong> Algebra</p>
-<strong>Description:</strong>
-    <div class="text-field"><p>The quadratic formula provides the solutions to any quadratic equation of the form ax² + bx + c = 0.</p>
-    </div>
-    
+<strong>Description:</strong><div class="text-field"><p>The quadratic formula provides the solutions to any quadratic equation of the form $ax^2 + bx + c = 0$.</p></div>
 <p><strong>Applications:</strong><ul class='fields-list'><li>Solving quadratic equations</li><li>Finding roots of parabolas</li><li>Optimization problems</li><li>Physics projectile motion</li></ul></p>
 
 
@@ -69,10 +100,7 @@
     </div>
     
 <p><strong>Category:</strong> Geometry</p>
-<strong>Description:</strong>
-    <div class="text-field"><p>In a right triangle, the square of the hypotenuse equals the sum of squares of the other two sides.</p>
-    </div>
-    
+<strong>Description:</strong><div class="text-field"><p>In a right triangle, the square of the hypotenuse equals the sum of squares of the other two sides.</p></div>
 <p><strong>Applications:</strong><ul class='fields-list'><li>Right triangle calculations</li><li>Distance calculations</li><li>Engineering and construction</li><li>Navigation and GPS systems</li></ul></p>
 <p><strong>Author: </strong>pythagoras</p>
 
@@ -92,12 +120,9 @@
     </div>
     
 <p><strong>Category:</strong> complex_analysis</p>
-<strong>Description:</strong>
-    <div class="text-field"><p>Often called the most beautiful equation in mathematics, connecting five fundamental mathematical constants.</p>
-    </div>
-    
+<strong>Description:</strong><div class="text-field"><p>Often called the most beautiful equation in mathematics, connecting five fundamental mathematical constants.</p></div>
 <p><strong>Applications:</strong><ul class='fields-list'><li>Complex analysis</li><li>Signal processing</li><li>Quantum mechanics</li><li>Electrical engineering</li></ul></p>
-<p><strong>Author: </strong><a href="../mathematicians/euler.html">Leonhard Euler</a></p>
+<p><strong>Author: </strong><a href="/mathematicians/euler.html">Leonhard Euler</a></p>
 
         </div>
     </div>

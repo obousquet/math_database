@@ -4,5 +4,14 @@
   "subtitle": "A simple demo for illustration",
   "description": "Welcome to the Mathematics Demo Database!",
   "footer": "Generated with Python • Hosted on GitHub Pages",
-  "homepage": "https://github.com/obousquet/math_database"
+  "homepage": "https://github.com/obousquet/math_database",
+  "graphs": [
+    {
+      "name": "Main Graph",
+      "short_name": "main",
+      "description": "Equations and their authors",
+      "module": "data/make_graph.py",
+      "function": "generate"
+    }
+  ]
 }

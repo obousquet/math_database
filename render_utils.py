@@ -97,18 +97,84 @@ def get_mathjax_scripts():
             });
         </script>"""
 
-def render_base_page_template(title, table_name, content, data_dir, extra_head="", extra_scripts="", use_mathjax=False):
-    """Render the base HTML page template with common structure."""
-    # Generate navigation links
-    nav_links = ['<a href="../index.html">Home</a>']
-    main_json = load_utils.get_main_json(data_dir)
+def render_nav_bar(data_dir=None, tables_info=None, main_json=None):
+    """
+    Render the navigation bar with JS-powered menus for tables and graphs.
+    If data_dir is provided, loads tables and main_json from disk.
+    If tables_info and main_json are provided, uses those directly (for main index).
+    """
+    if main_json is None:
+        main_json = load_utils.get_main_json(data_dir)
     homepage = main_json.get("homepage")
+    graphs = main_json.get("graphs", [])
+    if tables_info is None:
+        all_tables = load_utils.get_table_infos(data_dir)
+    else:
+        all_tables = tables_info
+    # Graphs menu
+    graphs_menu_items = "".join([
+        f'<li><a href="../graphs/{graph.get("short_name")}.html">{graph.get("name", graph.get("short_name"))}</a></li>'
+        for graph in graphs
+    ]) if data_dir else "".join([
+        f'<li><a href="graphs/{graph.get("short_name")}.html">{graph.get("name", graph.get("short_name"))}</a></li>'
+        for graph in graphs
+    ])
+    graphs_menu = f'''
+        <div class="nav-menu">
+            <button class="menu-btn" onclick="toggleMenu('graphs-menu')" aria-haspopup="true" aria-expanded="false">Graphs ▼</button>
+            <ul id="graphs-menu" class="menu-list" style="display:none;">{graphs_menu_items}</ul>
+        </div>
+    '''
+    # Tables menu
+    tables_menu_items = "".join([
+        f'<li><a href="../{table}/index.html">{info["name"]}</a></li>'
+        for table, info in sorted(all_tables.items(), key=lambda v: v[1]['name'])
+    ]) if data_dir else "".join([
+        f'<li><a href="{table}/index.html">{info["name"]}</a></li>'
+        for table, info in sorted(all_tables.items(), key=lambda v: v[1]['name'])
+    ])
+    tables_menu = f'''
+        <div class="nav-menu">
+            <button class="menu-btn" onclick="toggleMenu('tables-menu')" aria-haspopup="true" aria-expanded="false">Tables ▼</button>
+            <ul id="tables-menu" class="menu-list" style="display:none;">{tables_menu_items}</ul>
+        </div>
+    '''
+    # Home and About links
+    nav_links = ['<a href="../index.html">Home</a>'] if data_dir else ['<a href="index.html">Home</a>']
     if homepage:
         nav_links.append(f'<a href="{homepage}" target="_blank">About</a>')
-    all_tables = load_utils.get_table_infos(data_dir)
-    for table, info in sorted(all_tables.items(), key=lambda v: v[1]['name']):
-        nav_links.append(f'<a href="../{table}/index.html">{info["name"]}</a>')
-    nav_html = "\n                ".join(nav_links)
+    nav_html = "\n                ".join(nav_links) + graphs_menu + tables_menu
+    # Add JS and minimal CSS for menus
+    menu_js_css = '''
+    <style>
+    .nav-menu { display:inline-block; position:relative; margin-left:1em; }
+    .menu-btn { background:none; border:none; font-size:1em; cursor:pointer; padding:0.2em 0.7em; color:#fff; }
+    .menu-list { position:absolute; left:0; top:100%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border:1px solid #444; min-width:120px; z-index:10; list-style:none; margin:0; padding:0; box-shadow:0 2px 8px rgba(0,0,0,0.08); }
+    .menu-list li a { display:block; padding:0.4em 1em; text-decoration:none; color:#fff; }
+    .menu-list li a:hover { background:#444; color:#fff; }
+    nav a { color:#fff; }
+    </style>
+    <script>
+    function toggleMenu(id) {
+        var menu = document.getElementById(id);
+        var isOpen = menu.style.display === 'block';
+        // Close all menus
+        document.querySelectorAll('.menu-list').forEach(function(m) { m.style.display = 'none'; });
+        menu.style.display = isOpen ? 'none' : 'block';
+    }
+    // Close menus when clicking outside
+    document.addEventListener('click', function(e) {
+        if (!e.target.classList.contains('menu-btn')) {
+            document.querySelectorAll('.menu-list').forEach(function(m) { m.style.display = 'none'; });
+        }
+    });
+    </script>
+    '''
+    return nav_html, menu_js_css
+
+def render_base_page_template(title, table_name, content, data_dir, extra_head="", extra_scripts="", use_mathjax=False):
+    """Render the base HTML page template with common structure."""
+    nav_html, menu_js_css = render_nav_bar(data_dir=data_dir)
 
     # Try to get site-wide title from main.json
     site_title = None
@@ -146,6 +212,7 @@ def render_base_page_template(title, table_name, content, data_dir, extra_head="
         <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">
         <title>{page_title}</title>
         <link rel=\"stylesheet\" href=\"../styles.css\">
+        {menu_js_css}
         {extra_head}
     </head>
     <body>
@@ -226,30 +293,11 @@ def match(reference, entry, table=None):
     return entry.get('short_name') == short_name_or_id
 
 def maybe_linked(value, data_dir):
-    """
-    If value starts with #, link to an entry:
-    - #short_name: search all tables for short_name
-    - #table/short_name: search specific table for short_name
-    Otherwise, return value as is.
-    """
-    if not isinstance(value, str) or not value.startswith('#'):
-        return value
-    key = value[1:]
-    if '/' in key:
-        table, short_name = key.split('/', 1)
-        entry = load_utils.lookup_table_entry_by_short_name(table, short_name, data_dir)
-        if entry:
-            name = entry.get('name', short_name)
-            return f'<a href="../{table}/{short_name}.html">{name}</a>'
-        return '?' + value
-    # Search all tables for short_name
-    tables_info = load_utils.get_table_infos(data_dir)
-    for table in tables_info:
-        entry = load_utils.lookup_table_entry_by_short_name(table, key, data_dir)
-        if entry:
-            name = entry.get('name', key)
-            return f'<a href="../{table}/{key}.html">{name}</a>'
-    return '?' + value
+    cache = load_utils.get_table_entries_cache(data_dir)
+    url, entry = cache.get_url(value)
+    if url:
+        return f'<a href="{url}">{entry.get("name", entry.get("short_name", entry.get("id")))}</a>'
+    return ('?' if value.startswith('#') else '') + value
 
 def get_enum_display_name(table, column, value, data_dir):
     """Get the display name for an enum value in a specific table and column."""
@@ -624,12 +672,7 @@ def render_main_index_html(tables_info, data_dir):
             <p class=\"record-count\">{count} records</p>
         </div>
         """
-    # Navigation bar with About link
-    nav_links = ['<a href="index.html">Home</a>']
-    homepage = main_info.get("homepage")
-    if homepage:
-        nav_links.append(f'<a href="{homepage}" target="_blank">About</a>')
-    nav_html = "\n                ".join(nav_links)
+    nav_html, menu_js_css = render_nav_bar(tables_info=tables_info, main_json=main_info)
     return f"""
     <!DOCTYPE html>
     <html lang=\"en\">
@@ -638,6 +681,7 @@ def render_main_index_html(tables_info, data_dir):
         <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">
         <title>{main_info['title']}</title>
         <link rel=\"stylesheet\" href=\"styles.css\">
+        {menu_js_css}
     </head>
     <body>
         <header>

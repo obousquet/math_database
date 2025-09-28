@@ -124,6 +124,21 @@ def main():
     print(f"Generated main index: {output_file}")
     output_file = generate_css(output_dir)
     print(f"Generated CSS: {output_file}")
+    # Generate graphs/<short_name>.html for each graph in main.json
+    main_json = load_utils.get_main_json(data_dir)
+    graphs = main_json.get("graphs", [])
+    import render_graph_utils
+    graphs_dir = output_dir / "graphs"
+    graphs_dir.mkdir(exist_ok=True)
+    for graph in graphs:
+        short_name = graph.get("short_name")
+        if not short_name:
+            continue
+        graph_html = render_graph_utils.render_named_graph_html(data_dir, short_name)
+        graph_file = graphs_dir / f"{short_name}.html"
+        with open(graph_file, "w", encoding="utf-8") as gf:
+            gf.write(graph_html)
+        print(f"Generated graph: {graph_file}")
     print(f"\nWebsite generation complete!")
     print(f"Successfully processed {successful_tables} tables")
     print(f"Output directory: {output_dir}")
