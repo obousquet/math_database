@@ -53,7 +53,7 @@ def get_graph_info(short_name, data_dir):
     graphs = main_json.get("graphs", [])
     graph_info = next((g for g in graphs if g.get("short_name") == short_name), None)
     if not graph_info:
-        return f"<div class='error'>Graph '{short_name}' not found.</div>"
+        return None, None
     module_path = Path(data_dir).parent / graph_info["module"]
     function_name = graph_info["function"]
     # Dynamically import module and get function

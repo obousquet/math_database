@@ -707,10 +707,10 @@ def render_main_index_html(tables_info, data_dir):
     """
 
 @functools.cache
-def render_css():
+def render_local_file(path):
     script_dir = Path(__file__).parent
-    css_template = script_dir / "styles.css"
-    if not css_template.exists():
-        return "/* CSS template not found */"
-    with open(css_template, 'r', encoding='utf-8') as src:
+    file_path = script_dir / path
+    if not file_path.exists():
+        return "/* File not found */"
+    with open(file_path, 'r', encoding='utf-8') as src:
         return src.read()

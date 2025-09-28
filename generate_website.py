@@ -24,10 +24,32 @@ def generate_main_index(tables_info, data_dir, output_dir):
 
 def generate_css(output_dir):
     """Generate the CSS stylesheet by copying from the template file."""
-    css_content = render_utils.render_css()
+    css_content = render_utils.render_local_file("styles.css")
     css_output = output_dir / "styles.css"
     with open(css_output, 'w', encoding='utf-8') as dst:
         dst.write(css_content)
+    # Copy the contents of js/ and styles/ directories
+    script_dir = Path(__file__).parent
+    js_src = script_dir / "js"
+    styles_src = script_dir / "styles"
+    js_dst = output_dir / "js"
+    styles_dst = output_dir / "styles"
+    if js_src.exists():
+        if not js_dst.exists():
+            js_dst.mkdir()
+        for js_file in js_src.iterdir():
+            if js_file.is_file():
+                with open(js_file, 'r', encoding='utf-8') as src:
+                    with open(js_dst / js_file.name, 'w', encoding='utf-8') as dst:
+                        dst.write(src.read())
+    if styles_src.exists():
+        if not styles_dst.exists():
+            styles_dst.mkdir()
+        for style_file in styles_src.iterdir():
+            if style_file.is_file():
+                with open(style_file, 'r', encoding='utf-8') as src:
+                    with open(styles_dst / style_file.name, 'w', encoding='utf-8') as dst:
+                        dst.write(src.read())
     return css_output
 
 

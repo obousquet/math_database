@@ -119,8 +119,31 @@ def serve_edit_entry(table, row):
 
 @app.route('/styles.css')
 def serve_css():
-    css = render_utils.render_css()
+    css = render_utils.render_local_file("styles.css")
     return Response(css, mimetype='text/css')
+
+@app.route('/js/<path:filename>')
+def serve_js(filename):
+    if filename.endswith('.wasm'):
+        # Read as binary
+        wasm_path = Path(__file__).parent / 'js' / filename
+        if not wasm_path.exists():
+            return Response('Not found', status=404)
+        with open(wasm_path, 'rb') as f:
+            data = f.read()
+        return Response(data, mimetype='application/wasm')
+    else:
+        js = render_utils.render_local_file(f"js/{filename}")
+        if filename.endswith('.js'):
+            mimetype = 'application/javascript'
+        else:
+            mimetype = 'text/plain'
+        return Response(js, mimetype=mimetype)
+
+@app.route('/styles/<path:filename>')
+def serve_styles(filename):
+    styles = render_utils.render_local_file(f"styles/{filename}")
+    return Response(styles, mimetype='text/css')
 
 if __name__ == "__main__":
 

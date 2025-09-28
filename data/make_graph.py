@@ -1,6 +1,3 @@
-import os
-import sys
-sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 from load_utils import TableEntriesCache
 from typing import Dict, Any, List
 
@@ -34,7 +31,7 @@ def generate(cache: TableEntriesCache) -> Dict[str, List[Dict[str, Any]]]:
         name = eq.get("name", eq["id"])
         nodes.append({
             "id": f'#equations/{eq["id"]}',
-            "label": f'{name}\n${latex}$',
+            "label": f'{name}',
             "ref": f'#equations/{eq["id"]}',
             "type": "equation",
             "shape": "box",
