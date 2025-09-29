@@ -6,6 +6,9 @@ A Python application that generates static HTML websites from structured mathema
 
 - **Data-driven**: Organizes data in a structured directory format with schemas
 - **Customizable rendering**: Each table has its own Python render module for flexible HTML generation
+- **Cross-referencing**: Easily link between tables using hashtags like `#<table>/<short_name>`, `#<table>/<id>`, or simply `#<short_name>`/`#<id>` if unique. Reference fields in schemas are auto-populated with links to related entries.
+- **Graph generation**: Add a `make_graph.py` file to create interactive graph visualizations from your data
+- **Bibliography support**: Add a `.bib` file and link it in `main.json` to generate a bibliography page; reference entries via `\cite{key}` or `#bib/key`
 - **GitHub Pages ready**: Generates static HTML suitable for GitHub Pages hosting
 - **Mathematical notation**: Supports LaTeX rendering with MathJax
 - **Responsive design**: Mobile-friendly CSS with modern styling
@@ -32,7 +35,11 @@ data/
 2. **Define schema**: Add `schema.json` files describing your data structure
 3. **Create render modules**: Add `render_[table_name].py` files for HTML generation
 4. **Add data records**: Create JSON files for individual records
-5. **Generate static website**: Run the generator with the following command:
+5. **Cross-reference entries**: Use hashtags like `#<table>/<short_name>`, `#<table>/<id>`, or simply `#<short_name>`/`#<id>` in any field to link to other entries. If you define a field with type `reference` in your schema, it will be auto-populated with links to related entries.
+6. **Add graphs (optional)**: Create a `make_graph.py` file in your data directory and reference it in `main.json` to generate interactive graph pages
+7. **Add a bibliography (optional)**: Add a `.bib` file and reference it in `main.json` under the `bibliography` key; a bibliography page will be generated automatically
+8. **Reference bibliography entries**: Use `\cite{key}` in LaTeX fields or `#bib/key` in text fields to link to bibliography entries
+9. **Generate static website**: Run the generator with the following command:
 
   ```bash
   python generate_website.py DATA_DIR [--output_dir OUTPUT_DIR]
@@ -166,6 +173,11 @@ This repository includes example data for:
 - Modify `styles.css` to change the appearance
 - Edit render modules to customize HTML output
 - Add new tables by creating new subdirectories in `data/`
+- Add a `make_graph.py` file to create custom graph visualizations
+- Add a `.bib` file and reference it in `main.json` to enable bibliography features
+- Use hashtags like `#<table>/<short_name>`, `#<table>/<id>`, or simply `#<short_name>`/`#<id>` for cross-referencing entries
+- Define fields of type `reference` in your schema to auto-populate links to related entries
+- Use `\cite{key}` or `#bib/key` in your data to create links to bibliography entries
 - Extend the main generator script for additional functionality
 
 ## Workflow Summary
