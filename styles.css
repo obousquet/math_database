@@ -1,3 +1,28 @@
+/* Modern colorful button styles */
+button, input[type="submit"], input[type="button"] {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 0.6em 1.4em;
+    font-size: 1.08em;
+    font-weight: 500;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(102,126,234,0.08);
+    transition: background 0.2s, box-shadow 0.2s, transform 0.2s;
+    margin: 0.3em 0.2em;
+    outline: none;
+}
+button:hover, input[type="submit"]:hover, input[type="button"]:hover {
+    background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+    box-shadow: 0 4px 16px rgba(118,75,162,0.18);
+    transform: translateY(-2px) scale(1.04);
+}
+button:active, input[type="submit"]:active, input[type="button"]:active {
+    background: #4f3cc9;
+    color: #fff;
+    transform: scale(0.98);
+}
 /* Math Database Styles */
 
 * {

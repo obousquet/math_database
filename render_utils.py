@@ -9,6 +9,7 @@ from pathlib import Path
 import load_utils
 import re
 import markdown
+import html
 
 def render_list_section(items, title):
     """Render a list of items as an HTML section with title."""
@@ -72,7 +73,6 @@ def render_string_field(label, text, table_name, data_dir):
 
 def get_mathjax_head():
     return """
-        <script src=\"https://polyfill.io/v3/polyfill.min.js?features=es6\"></script>
         <script id=\"MathJax-script\" async src=\"https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js\"></script>
         <script>
             window.MathJax = {
@@ -91,9 +91,14 @@ def get_mathjax_scripts():
                     const latex = eq.getAttribute('data-latex');
                     eq.innerHTML = '$$' + latex + '$$';
                 });
-                if (window.MathJax) {
-                    MathJax.typesetPromise();
-                }
+                function tryTypeset() {{
+                    if (window.MathJax && typeof MathJax.typesetPromise === 'function') {{
+                        MathJax.typesetPromise();
+                    }} else {{
+                        setTimeout(tryTypeset, 100);
+                    }}
+                }}
+                tryTypeset();
             });
         </script>"""
 
@@ -494,7 +499,6 @@ def render_entry_form(table_name, schema, entry=None, default_entry=None):
             # Render as a table of strings with add/remove/edit controls
             items = value if isinstance(value, list) else ([] if not value else [value])
             table_rows = ""
-            import html
             for idx, item in enumerate(items):
                 escaped_item = html.escape(str(item), quote=True)
                 table_rows += f"""
@@ -577,16 +581,64 @@ def render_entry_form(table_name, schema, entry=None, default_entry=None):
                 input_html += f"<option value='{opt_value}' {selected}>{opt_display}</option>"
             input_html += "</select>"
         elif col_type == 'string':
-            input_html = f"<input type='text' id='{name}' name='{name}' value='{value}' {required_attr}>"
+            escaped_value = html.escape(str(value), quote=True)
+            input_html = f"<input type='text' id='{name}' name='{name}' value='{escaped_value}' {required_attr} style='width:98%; font-size:1em; padding:0.4em;'>"
         elif col_type == 'text':
-            input_html = f"<textarea id='{name}' name='{name}' rows='4' cols='50' {required_attr}>{value}</textarea>"
+            escaped_value = html.escape(str(value))
+            input_html = f"""
+            <div style='display:flex; align-items:flex-start; gap:1em;'>
+                <textarea id='{name}' name='{name}' rows='6' cols='60' {required_attr} style='width:60%; font-size:1em; padding:0.4em;' oninput='updateTextPreview_{name}()'>{escaped_value}</textarea>
+                <span id='text-preview-{name}' class='text-field' style='min-width:30%; background:#f8f8ff; padding:0.5em 1em; border-radius:6px; border:1px solid #eee;'></span>
+            </div>
+            <script>
+            function updateTextPreview_{name}() {{
+                var val = document.getElementById('{name}').value;
+                var preview = document.getElementById('text-preview-{name}');
+                // Use marked.js for markdown and MathJax for LaTeX
+                if (window.marked) {{
+                    preview.innerHTML = marked.parse(val);
+                }} else {{
+                    preview.innerText = val;
+                }}
+                function tryTypeset() {{
+                    if (window.MathJax && typeof MathJax.typesetPromise === 'function') {{
+                        MathJax.typesetPromise([preview]);
+                    }} else {{
+                        setTimeout(tryTypeset, 100);
+                    }}
+                }}
+                tryTypeset();
+            }}
+            </script>
+            """
         elif col_type == 'latex':
-            input_html = f"<input type='text' id='{name}' name='{name}' value='{value}' {required_attr}>"
+            escaped_value = html.escape(str(value), quote=True)
+            input_html = f"""
+            <div style='display:flex; align-items:center; gap:1em;'>
+                <input type='text' id='{name}' name='{name}' value='{escaped_value}' {required_attr} style='width:60%; font-size:1em; padding:0.4em;' oninput='updateLatexPreview_{name}()'>
+                <span id='latex-preview-{name}' class='latex-equation' style='min-width:30%; background:#f8f8ff; padding:0.5em 1em; border-radius:6px; border:1px solid #eee;'></span>
+            </div>
+            <script>
+            function updateLatexPreview_{name}() {{
+                var val = document.getElementById('{name}').value;
+                var preview = document.getElementById('latex-preview-{name}');
+                preview.innerHTML = '$$' + val + '$$';
+                function tryTypeset() {{
+                    if (window.MathJax && typeof MathJax.typesetPromise === 'function') {{
+                        MathJax.typesetPromise([preview]);
+                    }} else {{
+                        setTimeout(tryTypeset, 100);
+                    }}
+                }}
+                tryTypeset();
+            }}
+            </script>
+            """
         elif col_type == 'reference':
             pass
         else:
             raise ValueError(f"Unsupported column type: {col_type}")
-        form_fields += f"<div class='form-field'>{label}<br>{input_html}<br>{helptext}</div>"
+        form_fields += f"<div class='form-field'>{label}<br>{helptext}<br>{input_html}</div>"
     # JS for POST and download
     js = f'''
     <script>
@@ -638,15 +690,29 @@ def render_entry_form(table_name, schema, entry=None, default_entry=None):
     }}
     </script>
     '''
+    # Collect all latex field names for global initialization
+    latex_field_names = [col['name'] for col in columns if col.get('type') == 'latex']
+    text_field_names = [col['name'] for col in columns if col.get('type') == 'text']
+    global_init = """
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        %s
+    });
+    </script>
+    """ % "\n        ".join([f"if (window.updateLatexPreview_{name}) updateLatexPreview_{name}();" for name in latex_field_names] + [f"if (window.updateTextPreview_{name}) updateTextPreview_{name}();" for name in text_field_names])
+
     form_html = f'''
     <form id="entry-form" onsubmit="postJSON(event)">
         {form_fields}
-        <button type="submit">Save Entry</button>
-        <button type="button" onclick="window.history.back();" style="margin-left:1em;">Cancel</button>
+        <button type="submit" class="btn btn-primary">💾 Save Entry</button>
+        <button type="button" class="btn btn-cancel" onclick="window.history.back();">✖ Cancel</button>
     </form>
-    {js}
     '''
-    return form_html
+    final_scripts = f'''
+    {js}
+    {global_init}
+    '''
+    return form_html, final_scripts
 
 
 
@@ -674,14 +740,15 @@ def render_table_index_html(table_name, data_rows, schema, data_dir, mode, make_
 def render_add_entry_html(table_name, schema, data_dir, base_url="/"):
     next_id = get_next_id(table_name, data_dir)
     default_entry = {"id": next_id}
-    add_form_html = render_entry_form(table_name, schema, entry=None, default_entry=default_entry)
+    add_form_html, scripts = render_entry_form(table_name, schema, entry=None, default_entry=default_entry)
     title = schema.get('title', table_name.title())
     return render_base_page_template(
         title=f"Add New {title}",
         table_name=table_name,
         content=f'<h2>Add New {title}</h2>' + add_form_html,
         data_dir=data_dir,
-        use_mathjax=(table_name == 'equations'),
+        extra_scripts=scripts + "<script src='https://cdn.jsdelivr.net/npm/marked/marked.min.js'></script>",
+        use_mathjax=True,
         base_url=base_url
     )
 
@@ -700,12 +767,13 @@ def render_row_html(table_name, schema, row, data_dir, mode, base_url="/"):
 
 def render_edit_entry_html(table_name, schema, row, data_dir, base_url="/"):
     row_short_name = row.get('short_name') or row.get('id')
-    edit_form_html = render_entry_form(table_name, schema, entry=row)
+    edit_form_html, scripts = render_entry_form(table_name, schema, entry=row)
     return render_base_page_template(
         title=f"Edit {row.get('name', row_short_name)}",
         table_name=table_name,
         content=f'<h2>Edit {row.get("name", row_short_name)}</h2>' + edit_form_html,
         data_dir=data_dir,
+        extra_scripts=scripts + "<script src='https://cdn.jsdelivr.net/npm/marked/marked.min.js'></script>",
         use_mathjax=True,
         base_url=base_url
     )
