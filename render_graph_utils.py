@@ -21,7 +21,8 @@ def render_graph_html(
     edges: List[Dict[str, Any]],
     page_url_lookup: Dict[str, str],
     graph_name: str = "Graph",
-    data_dir: str = None
+    data_dir: str = None,
+    base_url: str = "./" 
 ) -> str:
     # Build DOT source for graphviz.js
     dot_lines = ['strict digraph "" {graph [bgcolor=transparent];']
@@ -139,10 +140,11 @@ def render_graph_html(
         data_dir=data_dir,
         extra_scripts=scripts,
         extra_head=head,
-        use_mathjax=False
+        use_mathjax=False,
+        base_url=base_url
     )
 
-def render_named_graph_html(data_dir: str, short_name: str) -> str:
+def render_named_graph_html(data_dir: str, short_name: str, base_url: str) -> str:
     """
     Renders a graph by short_name, loading the correct module and function from main.json.
     """
@@ -168,6 +170,6 @@ def render_named_graph_html(data_dir: str, short_name: str) -> str:
             if url:
                 page_url_lookup[ref] = url
     graph_name = graph_info.get("name", short_name)
-    return render_graph_html(nodes, edges, page_url_lookup, graph_name=graph_name, data_dir=data_dir)
+    return render_graph_html(nodes, edges, page_url_lookup, graph_name=graph_name, data_dir=data_dir, base_url=base_url)
 
 

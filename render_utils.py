@@ -113,10 +113,10 @@ def render_nav_bar(data_dir=None, tables_info=None, main_json=None):
         all_tables = tables_info
     # Graphs menu
     graphs_menu_items = "".join([
-        f'<li><a href="../graphs/{graph.get("short_name")}.html">{graph.get("name", graph.get("short_name"))}</a></li>'
+        f'<li><a href="/graphs/{graph.get("short_name")}.html">{graph.get("name", graph.get("short_name"))}</a></li>'
         for graph in graphs
     ]) if data_dir else "".join([
-        f'<li><a href="graphs/{graph.get("short_name")}.html">{graph.get("name", graph.get("short_name"))}</a></li>'
+        f'<li><a href="/graphs/{graph.get("short_name")}.html">{graph.get("name", graph.get("short_name"))}</a></li>'
         for graph in graphs
     ])
     graphs_menu = f'''
@@ -127,10 +127,10 @@ def render_nav_bar(data_dir=None, tables_info=None, main_json=None):
     '''
     # Tables menu
     tables_menu_items = "".join([
-        f'<li><a href="../{table}/index.html">{info["name"]}</a></li>'
+        f'<li><a href="/{table}/index.html">{info["name"]}</a></li>'
         for table, info in sorted(all_tables.items(), key=lambda v: v[1]['name'])
     ]) if data_dir else "".join([
-        f'<li><a href="{table}/index.html">{info["name"]}</a></li>'
+        f'<li><a href="/{table}/index.html">{info["name"]}</a></li>'
         for table, info in sorted(all_tables.items(), key=lambda v: v[1]['name'])
     ])
     tables_menu = f'''
@@ -140,7 +140,7 @@ def render_nav_bar(data_dir=None, tables_info=None, main_json=None):
         </div>
     '''
     # Home and About links
-    nav_links = ['<a href="../index.html">Home</a>'] if data_dir else ['<a href="index.html">Home</a>']
+    nav_links = ['<a href="/index.html">Home</a>'] if data_dir else ['<a href="index.html">Home</a>']
     if homepage:
         nav_links.append(f'<a href="{homepage}" target="_blank">About</a>')
     nav_html = "\n                ".join(nav_links) + graphs_menu + tables_menu
@@ -172,9 +172,10 @@ def render_nav_bar(data_dir=None, tables_info=None, main_json=None):
     '''
     return nav_html, menu_js_css
 
-def render_base_page_template(title, table_name, content, data_dir, extra_head="", extra_scripts="", use_mathjax=False):
+def render_base_page_template(title, table_name, content, data_dir, extra_head="", extra_scripts="", use_mathjax=False, subtitle=None, base_url="./"):
     """Render the base HTML page template with common structure."""
     nav_html, menu_js_css = render_nav_bar(data_dir=data_dir)
+    main_info = load_utils.get_main_json(data_dir)
 
     # Try to get site-wide title from main.json
     site_title = None
@@ -205,31 +206,72 @@ def render_base_page_template(title, table_name, content, data_dir, extra_head="
         extra_head = get_mathjax_head() + (extra_head or "")
         extra_scripts = get_mathjax_scripts() + (extra_scripts or "")
 
+    if subtitle:
+        subtitle = f'<p>{subtitle}</p>'
+    else:
+        subtitle = ''
     return f"""
     <!DOCTYPE html>
-    <html lang=\"en\">
+    <html lang="en">
     <head>
-        <meta charset=\"UTF-8\">
-        <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <base href="{base_url}">
         <title>{page_title}</title>
-        <link rel=\"stylesheet\" href=\"../styles.css\">
+        <link rel="stylesheet" href="/styles.css">
         {menu_js_css}
         {extra_head}
     </head>
     <body>
         <header>
             <h1>{page_title}</h1>
+            {subtitle}
             <nav>
                 {nav_html}
             </nav>
         </header>
-        <main class=\"table-container\">
+        <main class="table-container">
             {content}
         </main>
+        <footer>
+            <p>{main_info['footer']}</p>
+        </footer>
         {extra_scripts}
     </body>
     </html>
     """
+
+def render_main_index_html(tables_info, data_dir, base_url="./"):
+    main_info = load_utils.get_main_json(data_dir)
+    tables_html = ""
+    for table_name, info in tables_info.items():
+        description = info.get('description', f'{table_name.title()} data')
+        count = info.get('count', 0)
+        tables_html += f"""
+        <div class="table-card">
+            <h3><a href="{table_name}/index.html">{table_name.title()}</a></h3>
+            <p>{description}</p>
+            <p class="record-count">{count} records</p>
+        </div>
+        """
+    content = f"""
+    <div class="intro">
+        <p>{main_info.get('description', 'Welcome to the data tables index.')}</p>
+    </div>
+    <div class="tables-grid">
+        {tables_html}
+    </div>
+    """
+    return render_base_page_template(
+        title=main_info.get('title', 'Data Tables'),
+        table_name=None,
+        content=content,
+        data_dir=data_dir,
+        extra_scripts="",
+        use_mathjax=False,
+        subtitle=main_info.get('subtitle', ''),
+        base_url=base_url
+    )
 
 def get_delete_js(table_name):
     return f"""
@@ -252,9 +294,9 @@ def get_delete_js(table_name):
     """
     
 def render_row_page_template(
-        title, table_name, row, data_dir, use_mathjax=False, mode="static"):
+        title, table_name, row, data_dir, use_mathjax=False, mode="static", base_url="./"):
     """Render a standalone HTML page for a single equation row."""
-    content = f'<div class="back-link-light"><a href="index.html">&larr; Back to {table_name.title()} Table</a></div>'
+    content = f'<div class="back-link-light"><a href="/{table_name}/index.html">&larr; Back to {table_name.title()} Table</a></div>'
     cache = load_utils.get_table_entries_cache(data_dir)
     content += render_card(
         table_name, schema=cache.get_table_schema(table_name), entry=row, data_dir=data_dir, mode=mode) 
@@ -264,7 +306,8 @@ def render_row_page_template(
         content=content,
         data_dir=data_dir,
         extra_scripts=get_delete_js(table_name) if mode == "server" else "",
-        use_mathjax=True
+        use_mathjax=True,
+        base_url=base_url
     )
 
 def render_table_content(rows_html, schema):
@@ -334,11 +377,11 @@ def render_card(table_name, schema, entry, data_dir, mode="static", make_title=N
     else:
         title = entry.get('name', 'No Name')
 
-    row_link = f"{entry['short_name']}.html" if entry.get('short_name') else None
+    row_link = f"/{table_name}/{entry['short_name']}.html" if entry.get('short_name') else None
     edit_link = ""
     trashcan = ""
     if mode != "static":
-        edit_target = f"edit_{entry.get('short_name') or entry.get('id')}.html"
+        edit_target = f"/{table_name}/edit_{entry.get('short_name') or entry.get('id')}.html"
         # Icons container for proper layout
         icons_html = f'''<span style="position:absolute; top:8px; right:8px; display:flex; gap:8px; z-index:2;">
             <a href="{edit_target}" class="edit-entry-link" title="Edit Entry" style="font-size:1.2em; text-decoration:none;">✎</a>
@@ -400,7 +443,7 @@ def render_card(table_name, schema, entry, data_dir, mode="static", make_title=N
                         items_html = "<ul class='fields-list'>"
                         for ref_entry in ref_entries:
                             display = ref_entry.get('name', ref_entry.get('short_name', str(ref_entry.get('id', ''))))
-                            link = f"../{ref_table}/{ref_entry.get('short_name', ref_entry.get('id'))}.html"
+                            link = f"/{ref_table}/{ref_entry.get('short_name', ref_entry.get('id'))}.html"
                             items_html += f"<li><a href='{link}'>{display}</a></li>"
                         items_html += "</ul>"
                         field = f'<p><strong>{col_label}:</strong>{items_html}</p>'
@@ -607,9 +650,9 @@ def render_entry_form(table_name, schema, entry=None, default_entry=None):
 
 
 
-def render_table_index_html(table_name, data_rows, schema, data_dir, mode, make_title=None):
+def render_table_index_html(table_name, data_rows, schema, data_dir, mode, make_title=None, base_url="./"):
     """Render the complete table page."""
-    add_link = ('<div class="add-entry-link"><a href="add.html">+ Add New Entry</a></div>'
+    add_link = ('<div class="add-entry-link"><a href="/{table_name}/add.html">+ Add New Entry</a></div>'
                 if mode != "static" else '')
     rows_html = ""
     table_name = schema.get('table_name')
@@ -623,11 +666,12 @@ def render_table_index_html(table_name, data_rows, schema, data_dir, mode, make_
         content=content,
         data_dir=data_dir,
         extra_scripts=get_delete_js(table_name) if mode == "server" else "",
-        use_mathjax=True
+        use_mathjax=True,
+        base_url=base_url
     )
 
 
-def render_add_entry_html(table_name, schema, data_dir):
+def render_add_entry_html(table_name, schema, data_dir, base_url="./"):
     next_id = get_next_id(table_name, data_dir)
     default_entry = {"id": next_id}
     add_form_html = render_entry_form(table_name, schema, entry=None, default_entry=default_entry)
@@ -637,11 +681,12 @@ def render_add_entry_html(table_name, schema, data_dir):
         table_name=table_name,
         content=f'<h2>Add New {title}</h2>' + add_form_html,
         data_dir=data_dir,
-        use_mathjax=(table_name == 'equations')
+        use_mathjax=(table_name == 'equations'),
+        base_url=base_url
     )
 
 
-def render_row_html(table_name, schema, row, data_dir, mode):
+def render_row_html(table_name, schema, row, data_dir, mode, base_url="./"):
     title = schema.get('title', table_name.title())
     return render_row_page_template(
         title=title,
@@ -649,10 +694,11 @@ def render_row_html(table_name, schema, row, data_dir, mode):
         row=row,
         data_dir=data_dir,
         mode=mode,
-        use_mathjax=True
+        use_mathjax=True,
+        base_url=base_url
     )
 
-def render_edit_entry_html(table_name, schema, row, data_dir):
+def render_edit_entry_html(table_name, schema, row, data_dir, base_url="./"):
     row_short_name = row.get('short_name') or row.get('id')
     edit_form_html = render_entry_form(table_name, schema, entry=row)
     return render_base_page_template(
@@ -660,55 +706,9 @@ def render_edit_entry_html(table_name, schema, row, data_dir):
         table_name=table_name,
         content=f'<h2>Edit {row.get("name", row_short_name)}</h2>' + edit_form_html,
         data_dir=data_dir,
-        use_mathjax=True
+        use_mathjax=True,
+        base_url=base_url
     )
-
-def render_main_index_html(tables_info, data_dir):
-    main_info = load_utils.get_main_json(data_dir)
-    tables_html = ""
-    for table_name, info in tables_info.items():
-        description = info.get('description', f'{table_name.title()} data')
-        count = info.get('count', 0)
-        tables_html += f"""
-        <div class=\"table-card\">
-            <h3><a href=\"{table_name}/index.html\">{table_name.title()}</a></h3>
-            <p>{description}</p>
-            <p class=\"record-count\">{count} records</p>
-        </div>
-        """
-    nav_html, menu_js_css = render_nav_bar(tables_info=tables_info, main_json=main_info)
-    return f"""
-    <!DOCTYPE html>
-    <html lang=\"en\">
-    <head>
-        <meta charset=\"UTF-8\">
-        <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">
-        <title>{main_info['title']}</title>
-        <link rel=\"stylesheet\" href=\"styles.css\">
-        {menu_js_css}
-    </head>
-    <body>
-        <header>
-            <h1>{main_info['header']}</h1>
-            <p>{main_info['subtitle']}</p>
-            <nav>
-                {nav_html}
-            </nav>
-        </header>
-        <main class=\"main-container\">
-            <div class=\"intro\">
-                <p>{main_info['description']}</p>
-            </div>
-            <div class=\"tables-grid\">
-                {tables_html}
-            </div>
-        </main>
-        <footer>
-            <p>{main_info['footer']}</p>
-        </footer>
-    </body>
-    </html>
-    """
 
 @functools.cache
 def render_local_file(path):

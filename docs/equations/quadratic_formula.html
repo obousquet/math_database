@@ -4,8 +4,9 @@
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <base href="./">
         <title>Mathematical equations and their properties - Demo Database</title>
-        <link rel="stylesheet" href="../styles.css">
+        <link rel="stylesheet" href="/styles.css">
         
     <style>
     .nav-menu { display:inline-block; position:relative; margin-left:1em; }
@@ -45,26 +46,27 @@
     <body>
         <header>
             <h1>Mathematical equations and their properties - Demo Database</h1>
+            
             <nav>
-                <a href="../index.html">Home</a>
+                <a href="/index.html">Home</a>
                 <a href="https://github.com/obousquet/math_database" target="_blank">About</a>
         <div class="nav-menu">
             <button class="menu-btn" onclick="toggleMenu('graphs-menu')" aria-haspopup="true" aria-expanded="false">Graphs ▼</button>
-            <ul id="graphs-menu" class="menu-list" style="display:none;"><li><a href="../graphs/main.html">Main Graph</a></li></ul>
+            <ul id="graphs-menu" class="menu-list" style="display:none;"><li><a href="/graphs/main.html">Main Graph</a></li></ul>
         </div>
     
         <div class="nav-menu">
             <button class="menu-btn" onclick="toggleMenu('tables-menu')" aria-haspopup="true" aria-expanded="false">Tables ▼</button>
-            <ul id="tables-menu" class="menu-list" style="display:none;"><li><a href="../equations/index.html">Equations</a></li><li><a href="../mathematicians/index.html">Mathematicians</a></li></ul>
+            <ul id="tables-menu" class="menu-list" style="display:none;"><li><a href="/equations/index.html">Equations</a></li><li><a href="/mathematicians/index.html">Mathematicians</a></li></ul>
         </div>
     
             </nav>
         </header>
         <main class="table-container">
-            <div class="back-link-light"><a href="index.html">&larr; Back to Equations Table</a></div>
+            <div class="back-link-light"><a href="/equations/index.html">&larr; Back to Equations Table</a></div>
     <div class="table-card" id="math-1" style="position:relative;">
         
-        <h3><a href="quadratic_formula.html" class="table-title-link">Quadratic Formula</a></h3>
+        <h3><a href="/equations/quadratic_formula.html" class="table-title-link">Quadratic Formula</a></h3>
         <div class="table-details">
         <p><strong>Name: </strong>Quadratic Formula</p>
 <strong>Equation:</strong>
@@ -83,6 +85,9 @@
     </div>
     
         </main>
+        <footer>
+            <p>Generated with Python • Hosted on GitHub Pages</p>
+        </footer>
         
         <script>
             document.addEventListener('DOMContentLoaded', function() {

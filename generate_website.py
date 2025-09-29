@@ -13,9 +13,9 @@ import load_utils
 import render_utils
 
 
-def generate_main_index(tables_info, data_dir, output_dir):
+def generate_main_index(tables_info, data_dir, output_dir, base_url="./"):
     """Generate the main index.html page."""
-    main_html = render_utils.render_main_index_html(tables_info, data_dir)
+    main_html = render_utils.render_main_index_html(tables_info, data_dir, base_url=base_url)
     index_file = output_dir / "index.html"
     with open(index_file, 'w', encoding='utf-8') as f:
         f.write(main_html)
@@ -84,7 +84,7 @@ def generate_table_index(table_name, data_rows, schema, data_dir, output_dir, ma
     return output_file
 
 
-def generate_table_html(table_name, table_path, data_dir, output_dir):
+def generate_table_html(table_name, table_path, data_dir, output_dir, base_url="./"):
     """Generate all HTML files for a single table (index, add, row, edit)."""
     print(f"Processing table: {table_name}")
     cache = load_utils.get_table_entries_cache(data_dir)
@@ -116,6 +116,7 @@ def main():
     parser = argparse.ArgumentParser(description="Generate Math Database static website.")
     parser.add_argument("data_dir", type=str, help="Path to the data directory.")
     parser.add_argument("--output_dir", type=str, default=None, help="Path to the output directory (default: <data_dir>/../docs)")
+    parser.add_argument("--deploy", type=bool, default=False, help="If set, we set the base_url to the homepage entry in main.json.")
     args = parser.parse_args()
 
     data_dir = Path(args.data_dir).resolve()
@@ -136,20 +137,27 @@ def main():
         else:
             item.unlink()
 
+    if args.deploy:
+        print(f"Deploy mode: {args.deploy}")
+        main_json = load_utils.get_main_json(data_dir)
+        homepage = main_json.get("deploy_url", "./")
+        base_url = homepage if homepage.endswith('/') else homepage + '/'
+    else:
+        base_url = "./"
     print(f"Generating website from {data_dir} to {output_dir}")
     tables_info = load_utils.get_table_infos(data_dir)
     successful_tables = 0
     for table_name, info in tables_info.items():
         table_path = data_dir / table_name
         if table_path.is_dir():
-            output_file = generate_table_html(table_name, table_path, data_dir, output_dir)
+            output_file = generate_table_html(table_name, table_path, data_dir, output_dir, base_url=base_url)
             if output_file:
                 print(f"Generated HTML for {table_name}: {output_file}")
                 successful_tables += 1
     if successful_tables == 0:
         print("No tables were successfully processed")
         sys.exit(1)
-    output_file = generate_main_index(tables_info, data_dir, output_dir)
+    output_file = generate_main_index(tables_info, data_dir, output_dir, base_url=base_url)
     print(f"Generated main index: {output_file}")
     output_file = generate_css(output_dir)
     print(f"Generated CSS: {output_file}")
@@ -163,7 +171,7 @@ def main():
         short_name = graph.get("short_name")
         if not short_name:
             continue
-        graph_html = render_graph_utils.render_named_graph_html(data_dir, short_name)
+        graph_html = render_graph_utils.render_named_graph_html(data_dir, short_name, base_url=base_url)
         graph_file = graphs_dir / f"{short_name}.html"
         with open(graph_file, "w", encoding="utf-8") as gf:
             gf.write(graph_html)

@@ -4,8 +4,9 @@
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <base href="./">
         <title>Famous mathematicians and their contributions - Demo Database</title>
-        <link rel="stylesheet" href="../styles.css">
+        <link rel="stylesheet" href="/styles.css">
         
     <style>
     .nav-menu { display:inline-block; position:relative; margin-left:1em; }
@@ -45,17 +46,18 @@
     <body>
         <header>
             <h1>Famous mathematicians and their contributions - Demo Database</h1>
+            
             <nav>
-                <a href="../index.html">Home</a>
+                <a href="/index.html">Home</a>
                 <a href="https://github.com/obousquet/math_database" target="_blank">About</a>
         <div class="nav-menu">
             <button class="menu-btn" onclick="toggleMenu('graphs-menu')" aria-haspopup="true" aria-expanded="false">Graphs ▼</button>
-            <ul id="graphs-menu" class="menu-list" style="display:none;"><li><a href="../graphs/main.html">Main Graph</a></li></ul>
+            <ul id="graphs-menu" class="menu-list" style="display:none;"><li><a href="/graphs/main.html">Main Graph</a></li></ul>
         </div>
     
         <div class="nav-menu">
             <button class="menu-btn" onclick="toggleMenu('tables-menu')" aria-haspopup="true" aria-expanded="false">Tables ▼</button>
-            <ul id="tables-menu" class="menu-list" style="display:none;"><li><a href="../equations/index.html">Equations</a></li><li><a href="../mathematicians/index.html">Mathematicians</a></li></ul>
+            <ul id="tables-menu" class="menu-list" style="display:none;"><li><a href="/equations/index.html">Equations</a></li><li><a href="/mathematicians/index.html">Mathematicians</a></li></ul>
         </div>
     
             </nav>
@@ -69,12 +71,12 @@
                 
     <div class="table-card" id="math-1" style="position:relative;">
         
-        <h3><a href="euler.html" class="table-title-link">Leonhard Euler (1707 - 1783)</a></h3>
+        <h3><a href="/mathematicians/euler.html" class="table-title-link">Leonhard Euler (1707 - 1783)</a></h3>
         <div class="table-details">
         <p><strong>Name: </strong>Leonhard Euler</p>
 <p><strong>Nationality: </strong>Swiss</p>
 <p><strong>Major Contributions:</strong><ul class='fields-list'><li><a href="/equations/eulers_identity.html">Euler's Identity</a></li><li>Graph theory</li><li>Number theory</li><li>Calculus of variations</li><li>Topology</li></ul></p>
-<p><strong>Author Of:</strong><ul class='fields-list'><li><a href='../equations/eulers_identity.html'>Euler's Identity</a></li></ul></p>
+<p><strong>Author Of:</strong><ul class='fields-list'><li><a href='/equations/eulers_identity.html'>Euler's Identity</a></li></ul></p>
 <strong>Biography:</strong><div class="text-field"><p>One of the most prolific mathematicians in history, Euler made groundbreaking contributions to nearly every area of mathematics. He introduced much of the mathematical notation still used today and solved many important problems in analysis, number theory, and mechanics.</p></div>
 <p><strong>Alive:</strong> Unspecified</p>
 
@@ -83,7 +85,7 @@
     
     <div class="table-card" id="math-2" style="position:relative;">
         
-        <h3><a href="newton.html" class="table-title-link">Isaac Newton (1643 - 1727)</a></h3>
+        <h3><a href="/mathematicians/newton.html" class="table-title-link">Isaac Newton (1643 - 1727)</a></h3>
         <div class="table-details">
         <p><strong>Name: </strong>Isaac Newton</p>
 <p><strong>Nationality: </strong>English</p>
@@ -97,7 +99,7 @@
     
     <div class="table-card" id="math-3" style="position:relative;">
         
-        <h3><a href="gauss.html" class="table-title-link">Carl Friedrich Gauss (1777 - 1855)</a></h3>
+        <h3><a href="/mathematicians/gauss.html" class="table-title-link">Carl Friedrich Gauss (1777 - 1855)</a></h3>
         <div class="table-details">
         <p><strong>Name: </strong>Carl Friedrich Gauss</p>
 <p><strong>Nationality: </strong>German</p>
@@ -112,6 +114,9 @@
             </div>
     
         </main>
+        <footer>
+            <p>Generated with Python • Hosted on GitHub Pages</p>
+        </footer>
         
         <script>
             document.addEventListener('DOMContentLoaded', function() {

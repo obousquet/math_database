@@ -5,6 +5,7 @@
   "description": "Welcome to the Mathematics Demo Database!",
   "footer": "Generated with Python • Hosted on GitHub Pages",
   "homepage": "https://github.com/obousquet/math_database",
+  "deploy_url": "https://obousquet.github.io/math_database/",
   "graphs": [
     {
       "name": "Main Graph",
