@@ -137,7 +137,7 @@ class TableEntriesCache:
         table, entry = self.lookup(ref)
         if entry:
             key = entry.get('short_name', entry.get('id'))
-            return f'/{table}/{key}.html', entry
+            return f'{table}/{key}.html', entry
         return None, None
 
     def get_table_dict_by_short_name(self, table):

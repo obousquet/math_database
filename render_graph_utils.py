@@ -80,7 +80,7 @@ def render_graph_html(
 
     # HTML template
     head = """
-    <link rel="stylesheet" href="/styles/graph.css" />
+    <link rel="stylesheet" href="styles/graph.css" />
     """
     html = f"""
     <div id='graph-container-main' class='graph-container-main'>
@@ -92,10 +92,10 @@ def render_graph_html(
     </div>
     """
     scripts = f"""
-    <script src="/js/jquery.min.js" type="text/javascript"></script>
-    <script src="/js/d3.min.js"></script>
-    <script src="/js/hpcc.min.js"></script>
-    <script src="/js/d3-graphviz.js"></script>
+    <script src="js/jquery.min.js" type="text/javascript"></script>
+    <script src="js/d3.min.js"></script>
+    <script src="js/hpcc.min.js"></script>
+    <script src="js/d3-graphviz.js"></script>
     <script>
     const nodeCards = {json.dumps(node_cards)};
     document.addEventListener('DOMContentLoaded', function() {{
@@ -140,11 +140,11 @@ def render_graph_html(
         data_dir=data_dir,
         extra_scripts=scripts,
         extra_head=head,
-        use_mathjax=False,
+        use_mathjax=True,
         base_url=base_url
     )
 
-def render_named_graph_html(data_dir: str, short_name: str, base_url: str) -> str:
+def render_named_graph_html(data_dir: str, short_name: str, base_url: str = "./") -> str:
     """
     Renders a graph by short_name, loading the correct module and function from main.json.
     """

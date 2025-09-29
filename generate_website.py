@@ -58,7 +58,7 @@ def generate_css(output_dir):
     return css_output
 
 
-def generate_row_html(table_name, schema, row, data_dir, output_dir):
+def generate_row_html(table_name, schema, row, data_dir, output_dir, base_url="./"):
     title = schema.get('title', table_name.title())
     row_short_name = row.get('short_name') or row.get('id')
     row_html = render_utils.render_row_page_template(
@@ -67,7 +67,8 @@ def generate_row_html(table_name, schema, row, data_dir, output_dir):
         row=row,
         data_dir=data_dir,
         mode="static",
-        use_mathjax=True
+        use_mathjax=True,
+        base_url=base_url
     )
     row_file = output_dir / f"{row_short_name}.html"
     with open(row_file, 'w', encoding='utf-8') as rf:
@@ -75,9 +76,9 @@ def generate_row_html(table_name, schema, row, data_dir, output_dir):
     return row_file
 
 
-def generate_table_index(table_name, data_rows, schema, data_dir, output_dir, make_title=None):
+def generate_table_index(table_name, data_rows, schema, data_dir, output_dir, make_title=None, base_url="./"):
     """Generate the index.html page for a single table."""
-    html_content = render_utils.render_table_index_html(table_name, data_rows, schema, data_dir, mode="static", make_title=make_title)
+    html_content = render_utils.render_table_index_html(table_name, data_rows, schema, data_dir, mode="static", make_title=make_title, base_url=base_url)
     output_file = output_dir / "index.html"
     with open(output_file, 'w', encoding='utf-8') as f:
         f.write(html_content)
@@ -96,7 +97,7 @@ def generate_table_html(table_name, table_path, data_dir, output_dir, base_url="
     table_output_dir.mkdir(exist_ok=True)
     try:
         # Table index
-        output_file = generate_table_index(table_name, data_rows, schema, data_dir, table_output_dir, make_title)
+        output_file = generate_table_index(table_name, data_rows, schema, data_dir, table_output_dir, make_title, base_url=base_url)
         print(f"Generated HTML for {table_name}: {output_file}")
 
         # Row pages and edit forms
@@ -104,7 +105,7 @@ def generate_table_html(table_name, table_path, data_dir, output_dir, base_url="
             row_short_name = row.get('short_name') or row.get('id')
             if not row_short_name:
                 continue
-            output_file = generate_row_html(table_name, schema, row, data_dir, table_output_dir)
+            output_file = generate_row_html(table_name, schema, row, data_dir, table_output_dir, base_url=base_url)
             print(f"Generated row page: {output_file}")
         return True
     except Exception as e:
@@ -143,7 +144,7 @@ def main():
         homepage = main_json.get("deploy_url", "./")
         base_url = homepage if homepage.endswith('/') else homepage + '/'
     else:
-        base_url = "./"
+        base_url = "/"
     print(f"Generating website from {data_dir} to {output_dir}")
     tables_info = load_utils.get_table_infos(data_dir)
     successful_tables = 0

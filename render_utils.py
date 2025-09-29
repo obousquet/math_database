@@ -113,10 +113,10 @@ def render_nav_bar(data_dir=None, tables_info=None, main_json=None):
         all_tables = tables_info
     # Graphs menu
     graphs_menu_items = "".join([
-        f'<li><a href="/graphs/{graph.get("short_name")}.html">{graph.get("name", graph.get("short_name"))}</a></li>'
+        f'<li><a href="graphs/{graph.get("short_name")}.html">{graph.get("name", graph.get("short_name"))}</a></li>'
         for graph in graphs
     ]) if data_dir else "".join([
-        f'<li><a href="/graphs/{graph.get("short_name")}.html">{graph.get("name", graph.get("short_name"))}</a></li>'
+        f'<li><a href="graphs/{graph.get("short_name")}.html">{graph.get("name", graph.get("short_name"))}</a></li>'
         for graph in graphs
     ])
     graphs_menu = f'''
@@ -127,10 +127,10 @@ def render_nav_bar(data_dir=None, tables_info=None, main_json=None):
     '''
     # Tables menu
     tables_menu_items = "".join([
-        f'<li><a href="/{table}/index.html">{info["name"]}</a></li>'
+        f'<li><a href="{table}/index.html">{info["name"]}</a></li>'
         for table, info in sorted(all_tables.items(), key=lambda v: v[1]['name'])
     ]) if data_dir else "".join([
-        f'<li><a href="/{table}/index.html">{info["name"]}</a></li>'
+        f'<li><a href="{table}/index.html">{info["name"]}</a></li>'
         for table, info in sorted(all_tables.items(), key=lambda v: v[1]['name'])
     ])
     tables_menu = f'''
@@ -140,7 +140,7 @@ def render_nav_bar(data_dir=None, tables_info=None, main_json=None):
         </div>
     '''
     # Home and About links
-    nav_links = ['<a href="/index.html">Home</a>'] if data_dir else ['<a href="index.html">Home</a>']
+    nav_links = ['<a href="index.html">Home</a>']
     if homepage:
         nav_links.append(f'<a href="{homepage}" target="_blank">About</a>')
     nav_html = "\n                ".join(nav_links) + graphs_menu + tables_menu
@@ -218,7 +218,7 @@ def render_base_page_template(title, table_name, content, data_dir, extra_head="
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <base href="{base_url}">
         <title>{page_title}</title>
-        <link rel="stylesheet" href="/styles.css">
+        <link rel="stylesheet" href="styles.css">
         {menu_js_css}
         {extra_head}
     </head>
@@ -278,7 +278,7 @@ def get_delete_js(table_name):
     <script>
     function deleteEntry(entryId) {{
         if (!confirm('Are you sure you want to delete entry ' + entryId + '? This cannot be undone.')) return;
-        fetch('/api/delete_entry/{table_name}/' + entryId, {{ method: 'DELETE' }})
+        fetch('api/delete_entry/{table_name}/' + entryId, {{ method: 'DELETE' }})
             .then(resp => resp.json())
             .then(data => {{
                 if (data.success) {{
@@ -296,7 +296,7 @@ def get_delete_js(table_name):
 def render_row_page_template(
         title, table_name, row, data_dir, use_mathjax=False, mode="static", base_url="./"):
     """Render a standalone HTML page for a single equation row."""
-    content = f'<div class="back-link-light"><a href="/{table_name}/index.html">&larr; Back to {table_name.title()} Table</a></div>'
+    content = f'<div class="back-link-light"><a href="{table_name}/index.html">&larr; Back to {table_name.title()} Table</a></div>'
     cache = load_utils.get_table_entries_cache(data_dir)
     content += render_card(
         table_name, schema=cache.get_table_schema(table_name), entry=row, data_dir=data_dir, mode=mode) 
@@ -377,11 +377,11 @@ def render_card(table_name, schema, entry, data_dir, mode="static", make_title=N
     else:
         title = entry.get('name', 'No Name')
 
-    row_link = f"/{table_name}/{entry['short_name']}.html" if entry.get('short_name') else None
+    row_link = f"{table_name}/{entry['short_name']}.html" if entry.get('short_name') else None
     edit_link = ""
     trashcan = ""
     if mode != "static":
-        edit_target = f"/{table_name}/edit_{entry.get('short_name') or entry.get('id')}.html"
+        edit_target = f"{table_name}/edit_{entry.get('short_name') or entry.get('id')}.html"
         # Icons container for proper layout
         icons_html = f'''<span style="position:absolute; top:8px; right:8px; display:flex; gap:8px; z-index:2;">
             <a href="{edit_target}" class="edit-entry-link" title="Edit Entry" style="font-size:1.2em; text-decoration:none;">✎</a>
@@ -443,7 +443,7 @@ def render_card(table_name, schema, entry, data_dir, mode="static", make_title=N
                         items_html = "<ul class='fields-list'>"
                         for ref_entry in ref_entries:
                             display = ref_entry.get('name', ref_entry.get('short_name', str(ref_entry.get('id', ''))))
-                            link = f"/{ref_table}/{ref_entry.get('short_name', ref_entry.get('id'))}.html"
+                            link = f"{ref_table}/{ref_entry.get('short_name', ref_entry.get('id'))}.html"
                             items_html += f"<li><a href='{link}'>{display}</a></li>"
                         items_html += "</ul>"
                         field = f'<p><strong>{col_label}:</strong>{items_html}</p>'
@@ -622,14 +622,14 @@ def render_entry_form(table_name, schema, entry=None, default_entry=None):
         e.preventDefault();
         const form = document.getElementById('entry-form');
         const data = formToJSON(form);
-        const resp = await fetch('/api/save_entry/{table_name}', {{
+        const resp = await fetch('api/save_entry/{table_name}', {{
             method: 'POST',
             headers: {{ 'Content-Type': 'application/json' }},
             body: JSON.stringify(data)
         }});
         if (resp.ok) {{
             alert('Entry saved successfully!');
-            window.location.href = '/{table_name}/index.html';
+            window.location.href = '{table_name}/index.html';
         }} else {{
             let err;
             try {{ err = await resp.json(); }} catch (e) {{ err = {{}}; }}
@@ -652,7 +652,7 @@ def render_entry_form(table_name, schema, entry=None, default_entry=None):
 
 def render_table_index_html(table_name, data_rows, schema, data_dir, mode, make_title=None, base_url="./"):
     """Render the complete table page."""
-    add_link = ('<div class="add-entry-link"><a href="/{table_name}/add.html">+ Add New Entry</a></div>'
+    add_link = ('<div class="add-entry-link"><a href="{table_name}/add.html">+ Add New Entry</a></div>'
                 if mode != "static" else '')
     rows_html = ""
     table_name = schema.get('table_name')
