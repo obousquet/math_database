@@ -62,12 +62,13 @@ def render_graph_html(
     for node in nodes:
         ref = node.get("ref")
         entry = None
+        table = None
         if ref:
             table, entry = cache.lookup(ref)
         if entry:
             card_html = render_utils.render_card(
                 table_name=table,
-                schema=load_utils.get_table_schema(table, data_dir),
+                schema=cache.get_table_schema(table),
                 entry=entry,
                 data_dir=data_dir,
                 mode="static"
@@ -78,15 +79,15 @@ def render_graph_html(
 
     # HTML template
     head = """
-    <link rel="stylesheet" href="styles/dep_graph.css" />
+    <link rel="stylesheet" href="/styles/graph.css" />
     """
     html = f"""
-    <div style='width:100%;height:600px;border:1px solid #ccc;overflow:hidden;'>
-      <div id='graph'></div>
-      <div id='node-modal' style='display:none; position:fixed; top:10%; left:50%; transform:translateX(-50%); background:#fff; border:2px solid #4f3cc9; border-radius:8px; z-index:1000; max-width:500px; box-shadow:0 4px 24px rgba(0,0,0,0.18);'>
-        <div id='node-modal-content' style='padding:1em;'></div>
-        <button onclick='document.getElementById("node-modal").style.display="none"' style='margin:1em auto;display:block;'>Close</button>
-      </div>
+    <div id='graph-container-main' class='graph-container-main'>
+        <div id='graph'></div>
+        <div id='node-modal' class='node-modal'>
+            <div id='node-modal-content' class='node-modal-content'></div>
+            <button onclick='document.getElementById("node-modal").style.display="none"' style='margin:1em auto;display:block;'>Close</button>
+        </div>
     </div>
     """
     scripts = f"""
@@ -97,28 +98,36 @@ def render_graph_html(
     <script>
     const nodeCards = {json.dumps(node_cards)};
     document.addEventListener('DOMContentLoaded', function() {{
-      const graphContainer = d3.select('#graph');
-      let width = graphContainer.node().clientWidth;
-      let height = graphContainer.node().clientHeight;
-      if (height < 600) height = 600;
-      graphContainer.graphviz({{useWorker: true}})
-        .width(width)
-        .height(height)
-        .fit(true)
-        .renderDot(`{dot_src}`)
-        .on('end', function() {{
-          d3.selectAll('.node').on('click', function() {{
-            var node_id = d3.select(this).attr('id');
-            var node_id = d3.select(this).select('title').text();
-            if (!node_id) {{
-              node_id = d3.select(this).select('text').text();
-            }}
+        const graphContainer = d3.select('#graph-container-main');
+        let width = graphContainer.node().clientWidth;
+        let height = graphContainer.node().clientHeight;
+        if (height < 600) height = 600;
+        const graph = d3.select('#graph');
+        graph.graphviz({{useWorker: true}})
+            .width(width)
+            .height(height)
+            .fit(true)
+            .renderDot(`{dot_src}`)
+            .on('end', function() {{
+                d3.selectAll('.node').on('click', function() {{
+                    var node_id = d3.select(this).attr('id');
+                    var node_id = d3.select(this).select('title').text();
+                    if (!node_id) {{
+                        node_id = d3.select(this).select('text').text();
+                    }}
+                    var modal = document.getElementById('node-modal');
+                    var content = document.getElementById('node-modal-content');
+                    content.innerHTML = nodeCards[node_id] || '<div class="table-card"><h3>' + node_id + '</h3></div>';
+                    modal.style.display = 'block';
+                    if (window.MathJax) MathJax.typesetPromise([content]);
+                }});
+            }});
+        // Close modal when clicking outside
+        document.addEventListener('mousedown', function(e) {{
             var modal = document.getElementById('node-modal');
-            var content = document.getElementById('node-modal-content');
-            content.innerHTML = nodeCards[node_id] || '<div class="table-card"><h3>' + node_id + '</h3></div>';
-            modal.style.display = 'block';
-            if (window.MathJax) MathJax.typesetPromise([content]);
-          }});
+            if (modal.style.display === 'block' && !modal.contains(e.target)) {{
+                modal.style.display = 'none';
+            }}
         }});
     }});
     </script>

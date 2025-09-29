@@ -45,7 +45,8 @@ def save_entry(table):
         import json
         json.dump(entry, f, indent=2, ensure_ascii=False)
     # Update cache
-    load_utils.get_table_entries_cache(DATA_DIR).update(table, entry)
+    cache = load_utils.get_table_entries_cache(DATA_DIR)
+    cache.update(table, entry)
     return jsonify({"success": True, "filename": filename})
 
 @app.route('/api/delete_entry/<table>/<entry_id>', methods=['DELETE'])
@@ -54,7 +55,8 @@ def delete_entry(table, entry_id):
     table_dir = DATA_DIR / table
     # Lookup entry to find the exact filename
     entry_id = int(entry_id)
-    entry = load_utils.lookup_table_entry_by_id(table, entry_id, DATA_DIR)
+    cache = load_utils.get_table_entries_cache(DATA_DIR)
+    entry = cache.lookup_by_id(table, entry_id)
     if not entry:
         return jsonify({"error": f"Entry {entry_id} not found"}), 404
     fname = make_filename(entry)
@@ -63,7 +65,7 @@ def delete_entry(table, entry_id):
         try:
             file_path.unlink()
             # Update cache
-            load_utils.get_table_entries_cache(DATA_DIR).remove(table, entry_id)
+            cache.remove(table, entry_id)
             return jsonify({"success": True, "deleted": fname})
         except Exception as e:
             return jsonify({"error": str(e)}), 500
@@ -83,7 +85,8 @@ def serve_index():
 @app.route('/<table>/index.html')
 def serve_table_index(table):
     table_path = DATA_DIR / table
-    data_rows, schema = load_utils.get_table_data(table, DATA_DIR)
+    cache = load_utils.get_table_entries_cache(DATA_DIR)
+    data_rows, schema = cache.get_table_data(table)
     render_module = load_utils.load_render_module(table_path, table)
     make_title = getattr(render_module, 'make_title', None) if render_module else None
     html = render_utils.render_table_index_html(table, data_rows, schema, DATA_DIR, mode="server", make_title=make_title)
@@ -91,16 +94,18 @@ def serve_table_index(table):
 
 @app.route('/<table>/add.html')
 def serve_add_entry(table):
-    schema = load_utils.get_table_schema(table, DATA_DIR)
+    cache = load_utils.get_table_entries_cache(DATA_DIR)
+    schema = cache.get_table_schema(table)
     html = render_utils.render_add_entry_html(table, schema, DATA_DIR)
     return Response(html, mimetype='text/html')
 
 @app.route('/<table>/<row>.html')
 def serve_row_page(table, row):
-    schema = load_utils.get_table_schema(table, DATA_DIR)
-    entry = load_utils.lookup_table_entry_by_short_name(table, row, DATA_DIR)
+    cache = load_utils.get_table_entries_cache(DATA_DIR)
+    schema = cache.get_table_schema(table)
+    entry = cache.lookup_table_entry_by_short_name(table, row)
     if not entry:
-        entry = load_utils.lookup_table_entry_by_id(table, row, DATA_DIR)
+        entry = cache.lookup_table_entry_by_id(table, row)
     if not entry:
         abort(404)
     html = render_utils.render_row_html(table, schema, entry, DATA_DIR, mode="server")
@@ -108,10 +113,11 @@ def serve_row_page(table, row):
 
 @app.route('/<table>/edit_<row>.html')
 def serve_edit_entry(table, row):
-    schema = load_utils.get_table_schema(table, DATA_DIR)
-    entry = load_utils.lookup_table_entry_by_short_name(table, row, DATA_DIR)
+    cache = load_utils.get_table_entries_cache(DATA_DIR)
+    schema = cache.get_table_schema(table)
+    entry = cache.lookup_table_entry_by_short_name(table, row)
     if not entry:
-        entry = load_utils.lookup_table_entry_by_id(table, row, DATA_DIR)
+        entry = cache.lookup_table_entry_by_id(table, row)
     if not entry:
         abort(404)
     html = render_utils.render_edit_entry_html(table, schema, entry, DATA_DIR)

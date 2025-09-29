@@ -182,10 +182,11 @@ def render_base_page_template(title, table_name, content, data_dir, extra_head="
     site_title = main_json.get("title")
 
     # Use get_table_schema for table title/description
+    cache = load_utils.get_table_entries_cache(data_dir)
     table_title = None
     schema = None
     if table_name:
-        schema = load_utils.get_table_schema(table_name, data_dir)
+        schema = cache.get_table_schema(table_name)
         if schema:
             table_title = schema.get("description") or schema.get("table_name")
 
@@ -194,10 +195,10 @@ def render_base_page_template(title, table_name, content, data_dir, extra_head="
         page_title = f"{table_title} - {site_title}"
     elif table_title:
         page_title = table_title
-    elif site_title:
-        page_title = site_title
-    else:
+    elif title:
         page_title = title
+    else:
+        page_title = site_title
 
     # Add MathJax if requested
     if use_mathjax:
@@ -254,8 +255,9 @@ def render_row_page_template(
         title, table_name, row, data_dir, use_mathjax=False, mode="static"):
     """Render a standalone HTML page for a single equation row."""
     content = f'<div class="back-link-light"><a href="index.html">&larr; Back to {table_name.title()} Table</a></div>'
+    cache = load_utils.get_table_entries_cache(data_dir)
     content += render_card(
-        table_name, schema=load_utils.get_table_schema(table_name, data_dir), entry=row, data_dir=data_dir, mode=mode) 
+        table_name, schema=cache.get_table_schema(table_name), entry=row, data_dir=data_dir, mode=mode) 
     return render_base_page_template(
         title=title,
         table_name=table_name,
@@ -301,7 +303,8 @@ def maybe_linked(value, data_dir):
 
 def get_enum_display_name(table, column, value, data_dir):
     """Get the display name for an enum value in a specific table and column."""
-    enum_values = load_utils.get_enum_values(table, column, data_dir)
+    cache = load_utils.get_table_entries_cache(data_dir)
+    enum_values = cache.get_enum_values(table, column)
     for val, display in enum_values:
         if val == value:
             return display
@@ -309,7 +312,8 @@ def get_enum_display_name(table, column, value, data_dir):
 
 def get_next_id(table_name, data_dir):
     """Return the next available id (as a string) for a table, assuming numeric ids."""
-    entries = load_utils.get_table_entries(table_name, data_dir)
+    cache = load_utils.get_table_entries_cache(data_dir)
+    entries = cache.get_entries(table_name)
     max_id = 0
     for entry in entries:
         try:
@@ -346,7 +350,7 @@ def render_card(table_name, schema, entry, data_dir, mode="static", make_title=N
         title_html = f'<h3><a href="{row_link}" class="table-title-link">{title}</a></h3>'
     else:
         title_html = f'<h3>{title}</h3>'
-
+    cache = load_utils.get_table_entries_cache(data_dir)
     for col in schema.get('columns', []):
         col_name = col.get('name')
         col_label = col.get('label', col_name)
@@ -388,7 +392,7 @@ def render_card(table_name, schema, entry, data_dir, mode="static", make_title=N
                 if ref_table and ref_column:
                     # Find all entries in ref_table where ref_column == entry['short_name'] or entry['id']
                     ref_entries = []
-                    for ref_entry in load_utils.get_table_entries(ref_table, data_dir):
+                    for ref_entry in cache.get_table_entries(ref_table):
                         if match(ref_entry.get(ref_column), entry, table=table_name):
                             ref_entries.append(ref_entry)
                     if ref_entries:

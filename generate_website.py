@@ -39,9 +39,14 @@ def generate_css(output_dir):
             js_dst.mkdir()
         for js_file in js_src.iterdir():
             if js_file.is_file():
-                with open(js_file, 'r', encoding='utf-8') as src:
-                    with open(js_dst / js_file.name, 'w', encoding='utf-8') as dst:
-                        dst.write(src.read())
+                if js_file.suffix == '.js':
+                    with open(js_file, 'r', encoding='utf-8') as src:
+                        with open(js_dst / js_file.name, 'w', encoding='utf-8') as dst:
+                            dst.write(src.read())
+                elif js_file.suffix == '.wasm':
+                    with open(js_file, 'rb') as src:
+                        with open(js_dst / js_file.name, 'wb') as dst:
+                            dst.write(src.read())
     if styles_src.exists():
         if not styles_dst.exists():
             styles_dst.mkdir()
@@ -82,7 +87,9 @@ def generate_table_index(table_name, data_rows, schema, data_dir, output_dir, ma
 def generate_table_html(table_name, table_path, data_dir, output_dir):
     """Generate all HTML files for a single table (index, add, row, edit)."""
     print(f"Processing table: {table_name}")
-    data_rows, schema = load_utils.get_table_data(table_name, data_dir)
+    cache = load_utils.get_table_entries_cache(data_dir)
+    data_rows = cache.get_table_entries(table_name)
+    schema = cache.get_table_schema(table_name)
     render_module = load_utils.load_render_module(table_path, table_name)
     make_title = getattr(render_module, 'make_title', None) if render_module else None
     table_output_dir = output_dir / table_name

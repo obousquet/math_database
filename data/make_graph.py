@@ -15,7 +15,7 @@ def generate(cache: TableEntriesCache) -> Dict[str, List[Dict[str, Any]]]:
     nodes = []
     edges = []
     # Add mathematician nodes
-    for m in cache.get("mathematicians"):
+    for m in cache.get_table_entries("mathematicians"):
         nodes.append({
             "id": f'#mathematicians/{m["id"]}',
             "label": m.get("name", m["id"]),
@@ -26,7 +26,7 @@ def generate(cache: TableEntriesCache) -> Dict[str, List[Dict[str, Any]]]:
             "fillcolor": "#D9E1F2",
         })
     # Add equation nodes and author edges
-    for eq in cache.get("equations"):
+    for eq in cache.get_table_entries("equations"):
         latex = eq.get("equation", "")
         name = eq.get("name", eq["id"])
         nodes.append({

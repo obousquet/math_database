@@ -19,15 +19,16 @@ def load_json_file(filepath):
 def get_table_infos(data_dir):
     """Get information about all tables in the data directory."""
     tables_info = {}
+    cache = get_table_entries_cache(data_dir)
     for table_path in data_dir.iterdir():
         if table_path.is_dir() and (table_path / "schema.json").exists():
             table_name = table_path.name
-            data_rows, schema = get_table_data(table_name, data_dir)
+            data_rows, schema = cache.get_table_data(table_name)
             if schema:
                 description = schema.get('description', f'{table_name.title()} data')
             else:
                 description = f'{table_name.title()} data'
-            schema = get_table_schema(table_name, data_dir)
+            schema = cache.get_table_schema(table_name)
             if schema:
                 name = schema.get('title', table_name.title())
             else:
@@ -64,12 +65,13 @@ def get_graph_info(short_name, data_dir):
     return generate_func, graph_info
 
 # Explicit cache for table entries
+
 class TableEntriesCache:
     def __init__(self, data_dir=None):
         self._cache = {}  # key: (table, data_dir), value: list of entries
         self.data_dir = data_dir
 
-    def get(self, table):
+    def get_table_entries(self, table):
         key = str(table)
         if key not in self._cache:
             self._cache[key] = self._load_entries(table)
@@ -88,13 +90,13 @@ class TableEntriesCache:
 
     def remove(self, table, entry_id: int | str):
         key = str(table)
-        entries = self.get(table)
+        entries = self.get_table_entries(table)
         new_entries = [e for e in entries if e.get('id') != entry_id and e.get('short_name') != entry_id]
         self._cache[key] = new_entries
 
     def update(self, table, entry):
         key = str(table)
-        entries = self.get(table)
+        entries = self.get_table_entries(table)
         entry_id = entry.get('id') or entry.get('short_name')
         updated = False
         for i, e in enumerate(entries):
@@ -113,7 +115,7 @@ class TableEntriesCache:
         ref = ref[1:]
         if '/' in ref:
             table, id_part = ref.split('/', 1)
-            entries = self.get(table)
+            entries = self.get_table_entries(table)
             for entry in entries:
                 if id_part.isdigit():
                     if entry.get('id') == int(id_part):
@@ -138,58 +140,46 @@ class TableEntriesCache:
             return f'/{table}/{key}.html', entry
         return None, None
 
+    def get_table_dict_by_short_name(self, table):
+        entries = self.get_table_entries(table)
+        return {entry.get("short_name"): entry for entry in entries if "short_name" in entry}
 
-@functools.cache  # We use this to ensure a singleton instance
-def get_table_entries_cache(data_dir=None):
-    # Singleton cache instance
-    table_entries_cache = TableEntriesCache(data_dir)
-    return table_entries_cache
+    def get_table_dict_by_id(self, table):
+        entries = self.get_table_entries(table)
+        return {entry.get("id"): entry for entry in entries if "id" in entry}
 
-def get_table_entries(table, data_dir):
-    """Get all entries for a table, using explicit cache."""
-    return get_table_entries_cache(data_dir).get(table)
+    @functools.cache
+    def get_table_schema(self, table_name):
+        schema_path = Path(self.data_dir) / table_name / "schema.json"
+        return load_json_file(schema_path) or {}
 
-def get_table_dict_by_short_name(table, data_dir):
-    """Return a dict mapping short_name to entry for a table."""
-    entries = get_table_entries(table, data_dir)
-    return {entry.get("short_name"): entry for entry in entries if "short_name" in entry}
-
-def get_table_dict_by_id(table, data_dir):
-    """Return a dict mapping id to entry for a table."""
-    entries = get_table_entries(table, data_dir)
-    return {entry.get("id"): entry for entry in entries if "id" in entry}
-
-@functools.lru_cache(maxsize=1000)
-def get_table_schema(table_name, data_dir):
-    """Read and cache the schema.json file for a table."""
-    schema_path = Path(data_dir) / table_name / "schema.json"
-    return load_json_file(schema_path) or {}
-
-@functools.lru_cache(maxsize=1000)
-def get_enum_values(table_name, column_name, data_dir):
-    """Get the enum values for a specific column in a table's schema."""
-    schema = get_table_schema(table_name, data_dir)
-    if not schema:
+    @functools.cache
+    def get_enum_values(self, table_name, column_name):
+        schema = self.get_table_schema(table_name)
+        if not schema:
+            return []
+        for col in schema.get('columns', []):
+            if col['name'] == column_name and col.get('type') == 'enum':
+                return [(opt['value'], opt.get('display_name', opt['value'])) for opt in col.get('enum', [])]
         return []
-    for col in schema.get('columns', []):
-        if col['name'] == column_name and col.get('type') == 'enum':
-            return [(opt['value'], opt.get('display_name', opt['value'])) for opt in col.get('enum', [])]
-    return []
 
-def get_table_data(table_name, data_dir):
-    """Load all data files for a table."""
-    return get_table_entries(table_name, data_dir), get_table_schema(table_name, data_dir)
+    def get_table_data(self, table_name):
+        return self.get_table_entries(table_name), self.get_table_schema(table_name)
 
-def lookup_table_entry_by_short_name(table, short_name, data_dir):
-    """Lookup a table entry by its short_name. Returns the entry dict or None."""
-    d = get_table_dict_by_short_name(table, data_dir)
-    return d.get(short_name)
+    def lookup_table_entry_by_short_name(self, table, short_name):
+        d = self.get_table_dict_by_short_name(table)
+        return d.get(short_name)
+
+    def lookup_table_entry_by_id(self, table, id_value: int):
+        d = self.get_table_dict_by_id(table)
+        return d.get(id_value)
 
 
-def lookup_table_entry_by_id(table, id_value: int, data_dir: str):
-    """Lookup a table entry by its id. Returns the entry dict or None."""
-    d = get_table_dict_by_id(table, data_dir)
-    return d.get(id_value)
+
+# Singleton cache instance
+@functools.cache
+def get_table_entries_cache(data_dir=None):
+    return TableEntriesCache(data_dir)
 
 
 def load_render_module(table_path, table_name):
