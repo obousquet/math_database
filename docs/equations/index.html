@@ -33,7 +33,6 @@
     </script>
     
         
-        <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
         <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
         <script>
             window.MathJax = {
@@ -50,6 +49,7 @@
             <nav>
                 <a href="index.html">Home</a>
                 <a href="https://github.com/obousquet/math_database" target="_blank">About</a>
+                <a href="bibliography.html">Bibliography</a>
         <div class="nav-menu">
             <button class="menu-btn" onclick="toggleMenu('graphs-menu')" aria-haspopup="true" aria-expanded="false">Graphs ▼</button>
             <ul id="graphs-menu" class="menu-list" style="display:none;"><li><a href="graphs/main.html">Main Graph</a></li></ul>
@@ -121,10 +121,10 @@
         </div>
     </div>
     
-<p><strong>Category:</strong> complex_analysis</p>
-<strong>Description:</strong><div class="text-field"><p>Often called the most beautiful equation in mathematics, connecting five fundamental mathematical constants.</p></div>
+<p><strong>Category:</strong> Algebra</p>
+<strong>Description:</strong><div class="text-field"><p>Often called the most beautiful equation in mathematics, connecting five fundamental mathematical constants (see <a href="bibliography.html#e2008">[e2008]</a>).</p></div>
 <p><strong>Applications:</strong><ul class='fields-list'><li>Complex analysis</li><li>Signal processing</li><li>Quantum mechanics</li><li>Electrical engineering</li></ul></p>
-<p><strong>Author: </strong><a href="/mathematicians/euler.html">Leonhard Euler</a></p>
+<p><strong>Author: </strong><a href="mathematicians/euler.html">Leonhard Euler</a></p>
 
         </div>
     </div>
@@ -143,9 +143,14 @@
                     const latex = eq.getAttribute('data-latex');
                     eq.innerHTML = '$$' + latex + '$$';
                 });
-                if (window.MathJax) {
-                    MathJax.typesetPromise();
-                }
+                function tryTypeset() {{
+                    if (window.MathJax && typeof MathJax.typesetPromise === 'function') {{
+                        MathJax.typesetPromise();
+                    }} else {{
+                        setTimeout(tryTypeset, 100);
+                    }}
+                }}
+                tryTypeset();
             });
         </script>
     </body>

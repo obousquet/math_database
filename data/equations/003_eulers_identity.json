@@ -1,17 +1,15 @@
 {
   "id": 3,
   "name": "Euler's Identity",
+  "short_name": "eulers_identity",
   "equation": "e^{i\\pi} + 1 = 0",
-  "category": "complex_analysis",
-  "description": "Often called the most beautiful equation in mathematics, connecting five fundamental mathematical constants.",
+  "category": "algebra",
+  "description": "Often called the most beautiful equation in mathematics, connecting five fundamental mathematical constants (see #bib/e2008).",
   "applications": [
     "Complex analysis",
     "Signal processing",
     "Quantum mechanics",
     "Electrical engineering"
-  ]
-  ,
-  "short_name": "eulers_identity"
-  ,
+  ],
   "author": "#euler"
 }

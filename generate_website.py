@@ -162,8 +162,18 @@ def main():
     print(f"Generated main index: {output_file}")
     output_file = generate_css(output_dir)
     print(f"Generated CSS: {output_file}")
-    # Generate graphs/<short_name>.html for each graph in main.json
+
+    # Generate bibliography.html from .bib file
     main_json = load_utils.get_main_json(data_dir)
+    bibinfo = main_json.get("bibliography")
+    if bibinfo:
+        bib_html = render_utils.render_bibliography_html(data_dir, bibinfo["bibfile"], bibinfo.get("title", "Bibliography"), base_url=base_url)
+        bib_file = output_dir / 'bibliography.html'
+        with open(bib_file, "w", encoding="utf-8") as bf:
+            bf.write(bib_html)
+        print(f"Generated bibliography: {bib_file}")
+
+    # Generate graphs/<short_name>.html for each graph in main.json
     graphs = main_json.get("graphs", [])
     import render_graph_utils
     graphs_dir = output_dir / "graphs"

@@ -134,6 +134,10 @@ class TableEntriesCache:
 
     def get_url(self, ref: str):
         """Return a markdown link if ref is found, else just the ref text."""
+        # Special handling for bibliography references.
+        if ref.startswith('#bib/'):
+            key = ref[5:]
+            return f'bibliography.html#{key}', {'name': f'[{key}]'}
         table, entry = self.lookup(ref)
         if entry:
             key = entry.get('short_name', entry.get('id'))

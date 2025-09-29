@@ -10,6 +10,9 @@ import load_utils
 import re
 import markdown
 import html
+from pybtex.database.input import bibtex
+from pybtex.plugin import find_plugin
+import os
 
 def render_list_section(items, title):
     """Render a list of items as an HTML section with title."""
@@ -53,6 +56,13 @@ def render_text_field(label, text, data_dir):
         return maybe_linked(hashtag, data_dir)
     hashtag_pattern = r'#\w+(?:/\w+)?'
     linked_text = re.sub(hashtag_pattern, hashtag_replacer, text)
+    # Replace citations with links
+    def citation_replacer(match):
+        citation = match.group(0)
+        citations = citation[6:-1].split(',')
+        return ' '.join(maybe_linked(f'#bib/{c}', data_dir) for c in citations)
+    citation_pattern = r'\\cite\{([^}]+)\}'
+    linked_text = re.sub(citation_pattern, citation_replacer, linked_text)
     # Render Markdown
     html_text = markdown.markdown(linked_text, extensions=['extra', 'sane_lists'])
     if label:
@@ -148,6 +158,9 @@ def render_nav_bar(data_dir=None, tables_info=None, main_json=None):
     nav_links = ['<a href="index.html">Home</a>']
     if homepage:
         nav_links.append(f'<a href="{homepage}" target="_blank">About</a>')
+    # Add bibliography link if present
+    if main_json and main_json.get("bibliography"):
+        nav_links.append('<a href="bibliography.html">Bibliography</a>')
     nav_html = "\n                ".join(nav_links) + graphs_menu + tables_menu
     # Add JS and minimal CSS for menus
     menu_js_css = '''
@@ -786,3 +799,35 @@ def render_local_file(path):
         return "/* File not found */"
     with open(file_path, 'r', encoding='utf-8') as src:
         return src.read()
+
+def render_bibliography_html(data_dir, bibfile, title="Bibliography", base_url="/"):
+    """Render bibliography HTML from a .bib file using pybtex."""
+
+    bib_path = os.path.join(data_dir, bibfile)
+    parser = bibtex.Parser()
+    bib_data = parser.parse_file(bib_path)
+    from pybtex.style.formatting.plain import Style
+    style = Style()
+    html_backend = find_plugin('pybtex.backends', 'html')()
+    formatted_bibliography = style.format_bibliography(bib_data)
+    entries_html = ""
+    for entry in formatted_bibliography:
+        key = entry.key
+        entry_html = entry.text.render(html_backend)
+        # Add anchor and hashtag link
+        entries_html += f"<div class='bib-entry' id='{key}'>"
+        entries_html += f"<a class='bib-hash' href='bibliography.html#{key}' style='float:left; font-size:0.95em; color:#667eea;'>🔗</a>&nbsp;"
+        entries_html += entry_html
+        entries_html += "</div>"
+    html = f"""
+    <div class='bibliography-list'>
+    {entries_html}
+    </div>
+    """
+    return render_base_page_template(
+        title=title,
+        table_name=None,
+        content=html,
+        data_dir=data_dir,
+        base_url=base_url
+    )

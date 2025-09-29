@@ -151,6 +151,15 @@ def serve_styles(filename):
     styles = render_utils.render_local_file(f"styles/{filename}")
     return Response(styles, mimetype='text/css')
 
+@app.route('/bibliography.html')
+def serve_bibliography():
+    main_json = load_utils.get_main_json(DATA_DIR)
+    bibinfo = main_json.get("bibliography")
+    if not bibinfo:
+        return Response("No bibliography configured.", mimetype='text/html')
+    bib_html = render_utils.render_bibliography_html(DATA_DIR, bibinfo["bibfile"], bibinfo.get("title", "Bibliography"), base_url="/")
+    return Response(bib_html, mimetype='text/html')
+
 if __name__ == "__main__":
 
     # Parse command-line arguments for data directory

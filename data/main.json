@@ -14,5 +14,9 @@
       "module": "data/make_graph.py",
       "function": "generate"
     }
-  ]
+  ],
+  "bibliography": {
+    "title": "Bibliography",
+    "bibfile": "bibliography.bib"
+  }
 }

@@ -33,7 +33,6 @@
     </script>
     
         
-        <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
         <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
         <script>
             window.MathJax = {
@@ -50,6 +49,7 @@
             <nav>
                 <a href="index.html">Home</a>
                 <a href="https://github.com/obousquet/math_database" target="_blank">About</a>
+                <a href="bibliography.html">Bibliography</a>
         <div class="nav-menu">
             <button class="menu-btn" onclick="toggleMenu('graphs-menu')" aria-haspopup="true" aria-expanded="false">Graphs ▼</button>
             <ul id="graphs-menu" class="menu-list" style="display:none;"><li><a href="graphs/main.html">Main Graph</a></li></ul>
@@ -90,9 +90,14 @@
                     const latex = eq.getAttribute('data-latex');
                     eq.innerHTML = '$$' + latex + '$$';
                 });
-                if (window.MathJax) {
-                    MathJax.typesetPromise();
-                }
+                function tryTypeset() {{
+                    if (window.MathJax && typeof MathJax.typesetPromise === 'function') {{
+                        MathJax.typesetPromise();
+                    }} else {{
+                        setTimeout(tryTypeset, 100);
+                    }}
+                }}
+                tryTypeset();
             });
         </script>
     </body>
