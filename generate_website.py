@@ -13,7 +13,7 @@ import load_utils
 import render_utils
 
 
-def generate_main_index(tables_info, data_dir, output_dir, base_url="./"):
+def generate_main_index(tables_info, data_dir, output_dir, base_url="/"):
     """Generate the main index.html page."""
     main_html = render_utils.render_main_index_html(tables_info, data_dir, base_url=base_url)
     index_file = output_dir / "index.html"
@@ -58,7 +58,7 @@ def generate_css(output_dir):
     return css_output
 
 
-def generate_row_html(table_name, schema, row, data_dir, output_dir, base_url="./"):
+def generate_row_html(table_name, schema, row, data_dir, output_dir, base_url="/"):
     title = schema.get('title', table_name.title())
     row_short_name = row.get('short_name') or row.get('id')
     row_html = render_utils.render_row_page_template(
@@ -76,7 +76,7 @@ def generate_row_html(table_name, schema, row, data_dir, output_dir, base_url=".
     return row_file
 
 
-def generate_table_index(table_name, data_rows, schema, data_dir, output_dir, make_title=None, base_url="./"):
+def generate_table_index(table_name, data_rows, schema, data_dir, output_dir, make_title=None, base_url="/"):
     """Generate the index.html page for a single table."""
     html_content = render_utils.render_table_index_html(table_name, data_rows, schema, data_dir, mode="static", make_title=make_title, base_url=base_url)
     output_file = output_dir / "index.html"
@@ -85,7 +85,7 @@ def generate_table_index(table_name, data_rows, schema, data_dir, output_dir, ma
     return output_file
 
 
-def generate_table_html(table_name, table_path, data_dir, output_dir, base_url="./"):
+def generate_table_html(table_name, table_path, data_dir, output_dir, base_url="/"):
     """Generate all HTML files for a single table (index, add, row, edit)."""
     print(f"Processing table: {table_name}")
     cache = load_utils.get_table_entries_cache(data_dir)

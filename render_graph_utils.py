@@ -22,7 +22,7 @@ def render_graph_html(
     page_url_lookup: Dict[str, str],
     graph_name: str = "Graph",
     data_dir: str = None,
-    base_url: str = "./" 
+    base_url: str = "/" 
 ) -> str:
     # Build DOT source for graphviz.js
     dot_lines = ['strict digraph "" {graph [bgcolor=transparent];']
@@ -144,7 +144,7 @@ def render_graph_html(
         base_url=base_url
     )
 
-def render_named_graph_html(data_dir: str, short_name: str, base_url: str = "./") -> str:
+def render_named_graph_html(data_dir: str, short_name: str, base_url: str = "/") -> str:
     """
     Renders a graph by short_name, loading the correct module and function from main.json.
     """

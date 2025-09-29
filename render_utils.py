@@ -172,7 +172,7 @@ def render_nav_bar(data_dir=None, tables_info=None, main_json=None):
     '''
     return nav_html, menu_js_css
 
-def render_base_page_template(title, table_name, content, data_dir, extra_head="", extra_scripts="", use_mathjax=False, subtitle=None, base_url="./"):
+def render_base_page_template(title, table_name, content, data_dir, extra_head="", extra_scripts="", use_mathjax=False, subtitle=None, base_url="/"):
     """Render the base HTML page template with common structure."""
     nav_html, menu_js_css = render_nav_bar(data_dir=data_dir)
     main_info = load_utils.get_main_json(data_dir)
@@ -241,7 +241,7 @@ def render_base_page_template(title, table_name, content, data_dir, extra_head="
     </html>
     """
 
-def render_main_index_html(tables_info, data_dir, base_url="./"):
+def render_main_index_html(tables_info, data_dir, base_url="/"):
     main_info = load_utils.get_main_json(data_dir)
     tables_html = ""
     for table_name, info in tables_info.items():
@@ -294,7 +294,7 @@ def get_delete_js(table_name):
     """
     
 def render_row_page_template(
-        title, table_name, row, data_dir, use_mathjax=False, mode="static", base_url="./"):
+        title, table_name, row, data_dir, use_mathjax=False, mode="static", base_url="/"):
     """Render a standalone HTML page for a single equation row."""
     content = f'<div class="back-link-light"><a href="{table_name}/index.html">&larr; Back to {table_name.title()} Table</a></div>'
     cache = load_utils.get_table_entries_cache(data_dir)
@@ -650,7 +650,7 @@ def render_entry_form(table_name, schema, entry=None, default_entry=None):
 
 
 
-def render_table_index_html(table_name, data_rows, schema, data_dir, mode, make_title=None, base_url="./"):
+def render_table_index_html(table_name, data_rows, schema, data_dir, mode, make_title=None, base_url="/"):
     """Render the complete table page."""
     add_link = ('<div class="add-entry-link"><a href="{table_name}/add.html">+ Add New Entry</a></div>'
                 if mode != "static" else '')
@@ -671,7 +671,7 @@ def render_table_index_html(table_name, data_rows, schema, data_dir, mode, make_
     )
 
 
-def render_add_entry_html(table_name, schema, data_dir, base_url="./"):
+def render_add_entry_html(table_name, schema, data_dir, base_url="/"):
     next_id = get_next_id(table_name, data_dir)
     default_entry = {"id": next_id}
     add_form_html = render_entry_form(table_name, schema, entry=None, default_entry=default_entry)
@@ -686,7 +686,7 @@ def render_add_entry_html(table_name, schema, data_dir, base_url="./"):
     )
 
 
-def render_row_html(table_name, schema, row, data_dir, mode, base_url="./"):
+def render_row_html(table_name, schema, row, data_dir, mode, base_url="/"):
     title = schema.get('title', table_name.title())
     return render_row_page_template(
         title=title,
@@ -698,7 +698,7 @@ def render_row_html(table_name, schema, row, data_dir, mode, base_url="./"):
         base_url=base_url
     )
 
-def render_edit_entry_html(table_name, schema, row, data_dir, base_url="./"):
+def render_edit_entry_html(table_name, schema, row, data_dir, base_url="/"):
     row_short_name = row.get('short_name') or row.get('id')
     edit_form_html = render_entry_form(table_name, schema, entry=row)
     return render_base_page_template(
