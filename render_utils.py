@@ -374,7 +374,7 @@ def get_enum_display_name(table, column, value, data_dir):
 def get_next_id(table_name, data_dir):
     """Return the next available id (as a string) for a table, assuming numeric ids."""
     cache = load_utils.get_table_entries_cache(data_dir)
-    entries = cache.get_entries(table_name)
+    entries = cache.get_table_entries(table_name)
     max_id = 0
     for entry in entries:
         try:
@@ -731,7 +731,7 @@ def render_entry_form(table_name, schema, entry=None, default_entry=None):
 
 def render_table_index_html(table_name, data_rows, schema, data_dir, mode, make_title=None, base_url="/"):
     """Render the complete table page."""
-    add_link = ('<div class="add-entry-link"><a href="{table_name}/add.html">+ Add New Entry</a></div>'
+    add_link = (f'<div class="add-entry-link"><a href="{table_name}/add.html">+ Add New Entry</a></div>'
                 if mode != "static" else '')
     rows_html = ""
     table_name = schema.get('table_name')
