@@ -450,6 +450,7 @@ def render_card(table_name, schema, entry, data_dir, mode="static", make_title=N
                 # Reference fields: auto-populate from another table/column
                 ref_table = col.get('table')
                 ref_column = col.get('column')
+                header = f'<div class="reference-field"><p><strong>{col_label}:</strong>'
                 if ref_table and ref_column:
                     # Find all entries in ref_table where ref_column == entry['short_name'] or entry['id']
                     ref_entries = []
@@ -464,11 +465,11 @@ def render_card(table_name, schema, entry, data_dir, mode="static", make_title=N
                             link = f"{ref_table}/{ref_entry.get('short_name', ref_entry.get('id'))}.html"
                             items_html += f"<li><a href='{link}'>{display}</a></li>"
                         items_html += "</ul>"
-                        field = f'<p><strong>{col_label}:</strong>{items_html}</p>'
+                        field = f'{header}{items_html}</p></div>'
                     else:
-                        field = f'<p><strong>{col_label}:</strong> <em>None</em></p>'
+                        field = f'{header} <em>None</em></p></div>'
                 else:
-                    field = f'<p><strong>{col_label}:</strong> <em>Invalid reference config</em></p>'
+                    field = f'{header} <em>Invalid reference config</em></p></div>'
         card_content += field + '\n'
     html = f"""
     <div class="table-card" id="math-{entry['id']}" style="position:relative;">
@@ -731,20 +732,116 @@ def render_entry_form(table_name, schema, entry=None, default_entry=None):
 
 def render_table_index_html(table_name, data_rows, schema, data_dir, mode, make_title=None, base_url="/"):
     """Render the complete table page."""
-    add_link = (f'<div class="add-entry-link"><a href="{table_name}/add.html">+ Add New Entry</a></div>'
-                if mode != "static" else '')
+    
+    # Add search and sort controls
+    add_button = (f'<button class="btn btn-primary" onclick="window.location.href=\'{table_name}/add.html\'">+ Add New Entry</button>'
+                  if mode != "static" else '')
+    
+    controls = f"""
+    <div style="margin-bottom: 1em; display: flex; justify-content: space-between; align-items: center; gap: 1em; flex-wrap: wrap;">
+        <div style="flex: 1;">
+            <input type="text" id="search-box" placeholder="Search by name..." style="width: 100%; max-width: 400px; padding: 0.5em; font-size: 1em; border: 1px solid #ccc; border-radius: 4px;" oninput="filterCards()">
+        </div>
+        <div style="display: flex; gap: 0.5em; align-items: center; flex-wrap: wrap;">
+            {add_button}
+            <div style="display: flex; gap: 0.5em; align-items: center;">
+                <label style="margin-right: 0.5em;">View:</label>
+                <button id="compact-toggle" class="btn btn-primary" onclick="toggleCompactMode()">Compact</button>
+            </div>
+            <div style="display: flex; gap: 0.5em; align-items: center;">
+                <label style="margin-right: 0.5em;">Sort by:</label>
+                <button class="btn btn-primary" onclick="sortCards('id')">ID</button>
+                <button class="btn btn-primary" onclick="sortCards('name')">Name</button>
+            </div>
+        </div>
+    </div>
+    """
+    
     rows_html = ""
     table_name = schema.get('table_name')
     for row in data_rows:
         rows_html += render_card(
             table_name=table_name, schema=schema, entry=row, data_dir=data_dir,  mode=mode, make_title=make_title)
-    content = add_link + render_table_content(rows_html, schema)
+    
+    # Add sorting and filtering JavaScript
+    sort_filter_script = """
+    <script>
+    let isCompactMode = false;
+    
+    function sortCards(sortBy) {
+        const grid = document.querySelector('.table-grid');
+        const cards = Array.from(grid.querySelectorAll('.table-card'));
+        
+        cards.sort((a, b) => {
+            if (sortBy === 'id') {
+                const idA = parseInt(a.id.replace('math-', '')) || 0;
+                const idB = parseInt(b.id.replace('math-', '')) || 0;
+                return idA - idB;
+            } else if (sortBy === 'name') {
+                const nameA = (a.querySelector('h3 a') || a.querySelector('h3')).textContent.toLowerCase();
+                const nameB = (b.querySelector('h3 a') || b.querySelector('h3')).textContent.toLowerCase();
+                return nameA.localeCompare(nameB);
+            }
+            return 0;
+        });
+        
+        // Clear grid and re-append sorted cards
+        grid.innerHTML = '';
+        cards.forEach(card => grid.appendChild(card));
+    }
+    
+    function filterCards() {
+        const searchTerm = document.getElementById('search-box').value.toLowerCase();
+        const grid = document.querySelector('.table-grid');
+        const cards = grid.querySelectorAll('.table-card');
+        
+        cards.forEach(card => {
+            const name = (card.querySelector('h3 a') || card.querySelector('h3')).textContent.toLowerCase();
+            if (name.includes(searchTerm)) {
+                card.style.display = '';
+            } else {
+                card.style.display = 'none';
+            }
+        });
+    }
+    
+    function toggleCompactMode() {
+        isCompactMode = !isCompactMode;
+        const toggleBtn = document.getElementById('compact-toggle');
+        const cards = document.querySelectorAll('.table-card');
+        
+        cards.forEach(card => {
+            // Find all fields with reference type (they contain 'fields-list' ul elements within paragraphs)
+            const details = card.querySelector('.table-details');
+            if (details) {
+                const ref_fields = details.querySelectorAll('.reference-field');
+                ref_fields.forEach(p => {
+                    // Check if this paragraph contains a list (likely a reference field)
+                    if (p.querySelector('ul.fields-list')) {
+                        if (isCompactMode) {
+                            p.style.display = 'none';
+                        } else {
+                            p.style.display = '';
+                        }
+                    }
+                });
+            }
+        });
+        
+        toggleBtn.textContent = isCompactMode ? 'Normal' : 'Compact';
+    }
+    </script>
+    """
+    
+    content = controls + render_table_content(rows_html, schema)
+    extra_scripts = (get_delete_js(table_name) if mode == "server" else "") + sort_filter_script
+    
     return render_base_page_template(
         title=schema.get('description', '') if schema else '',
         table_name=table_name,
         content=content,
         data_dir=data_dir,
-        extra_scripts=get_delete_js(table_name) if mode == "server" else "",
+        extra_scripts=extra_scripts,
         use_mathjax=True,
         base_url=base_url
     )

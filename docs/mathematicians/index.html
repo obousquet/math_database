@@ -64,6 +64,24 @@
         </header>
         <main class="table-container">
             
+    <div style="margin-bottom: 1em; display: flex; justify-content: space-between; align-items: center; gap: 1em; flex-wrap: wrap;">
+        <div style="flex: 1;">
+            <input type="text" id="search-box" placeholder="Search by name..." style="width: 100%; max-width: 400px; padding: 0.5em; font-size: 1em; border: 1px solid #ccc; border-radius: 4px;" oninput="filterCards()">
+        </div>
+        <div style="display: flex; gap: 0.5em; align-items: center; flex-wrap: wrap;">
+            
+            <div style="display: flex; gap: 0.5em; align-items: center;">
+                <label style="margin-right: 0.5em;">View:</label>
+                <button id="compact-toggle" class="btn btn-primary" onclick="toggleCompactMode()">Compact</button>
+            </div>
+            <div style="display: flex; gap: 0.5em; align-items: center;">
+                <label style="margin-right: 0.5em;">Sort by:</label>
+                <button class="btn btn-primary" onclick="sortCards('id')">ID</button>
+                <button class="btn btn-primary" onclick="sortCards('name')">Name</button>
+            </div>
+        </div>
+    </div>
+    
             <div class="table-description">
                 <p>Famous mathematicians and their contributions</p>
             </div>
@@ -76,7 +94,7 @@
         <p><strong>Name: </strong>Leonhard Euler</p>
 <p><strong>Nationality: </strong>Swiss</p>
 <p><strong>Major Contributions:</strong><ul class='fields-list'><li><a href="equations/eulers_identity.html">Euler's Identity</a></li><li>Graph theory</li><li>Number theory</li><li>Calculus of variations</li><li>Topology</li></ul></p>
-<p><strong>Author Of:</strong><ul class='fields-list'><li><a href='equations/eulers_identity.html'>Euler's Identity</a></li></ul></p>
+<div class="reference-field"><p><strong>Author Of:</strong><ul class='fields-list'><li><a href='equations/eulers_identity.html'>Euler's Identity</a></li></ul></p></div>
 <strong>Biography:</strong><div class="text-field"><p>One of the most prolific mathematicians in history, Euler made groundbreaking contributions to nearly every area of mathematics. He introduced much of the mathematical notation still used today and solved many important problems in analysis, number theory, and mechanics.</p></div>
 <p><strong>Alive:</strong> Unspecified</p>
 
@@ -90,7 +108,7 @@
         <p><strong>Name: </strong>Isaac Newton</p>
 <p><strong>Nationality: </strong>English</p>
 <p><strong>Major Contributions:</strong><ul class='fields-list'><li>Calculus</li><li>Laws of motion</li><li>Universal gravitation</li><li>Binomial theorem</li><li>Method of fluxions</li></ul></p>
-<p><strong>Author Of:</strong> <em>None</em></p>
+<div class="reference-field"><p><strong>Author Of:</strong> <em>None</em></p></div>
 <strong>Biography:</strong><div class="text-field"><p>Newton revolutionized mathematics and physics with his development of calculus and laws of motion. His work laid the foundation for classical mechanics and much of modern mathematics.</p></div>
 <p><strong>Alive:</strong> No</p>
 
@@ -104,7 +122,7 @@
         <p><strong>Name: </strong>Carl Friedrich Gauss</p>
 <p><strong>Nationality: </strong>German</p>
 <p><strong>Major Contributions:</strong><ul class='fields-list'><li>Number theory</li><li>Differential geometry</li><li>Statistics</li><li>Analysis</li><li>Astronomy</li></ul></p>
-<p><strong>Author Of:</strong> <em>None</em></p>
+<div class="reference-field"><p><strong>Author Of:</strong> <em>None</em></p></div>
 <strong>Biography:</strong><div class="text-field"><p>Known as the 'Prince of Mathematics', Gauss made significant contributions to many fields including number theory, statistics, analysis, differential geometry, geodesy, geophysics, mechanics, electrostatics, astronomy, matrix theory, and optics.</p></div>
 <p><strong>Alive:</strong> Unspecified</p>
 
@@ -135,6 +153,73 @@
                 tryTypeset();
             });
         </script>
+    <script>
+    let isCompactMode = false;
+    
+    function sortCards(sortBy) {
+        const grid = document.querySelector('.table-grid');
+        const cards = Array.from(grid.querySelectorAll('.table-card'));
+        
+        cards.sort((a, b) => {
+            if (sortBy === 'id') {
+                const idA = parseInt(a.id.replace('math-', '')) || 0;
+                const idB = parseInt(b.id.replace('math-', '')) || 0;
+                return idA - idB;
+            } else if (sortBy === 'name') {
+                const nameA = (a.querySelector('h3 a') || a.querySelector('h3')).textContent.toLowerCase();
+                const nameB = (b.querySelector('h3 a') || b.querySelector('h3')).textContent.toLowerCase();
+                return nameA.localeCompare(nameB);
+            }
+            return 0;
+        });
+        
+        // Clear grid and re-append sorted cards
+        grid.innerHTML = '';
+        cards.forEach(card => grid.appendChild(card));
+    }
+    
+    function filterCards() {
+        const searchTerm = document.getElementById('search-box').value.toLowerCase();
+        const grid = document.querySelector('.table-grid');
+        const cards = grid.querySelectorAll('.table-card');
+        
+        cards.forEach(card => {
+            const name = (card.querySelector('h3 a') || card.querySelector('h3')).textContent.toLowerCase();
+            if (name.includes(searchTerm)) {
+                card.style.display = '';
+            } else {
+                card.style.display = 'none';
+            }
+        });
+    }
+    
+    function toggleCompactMode() {
+        isCompactMode = !isCompactMode;
+        const toggleBtn = document.getElementById('compact-toggle');
+        const cards = document.querySelectorAll('.table-card');
+        
+        cards.forEach(card => {
+            // Find all fields with reference type (they contain 'fields-list' ul elements within paragraphs)
+            const details = card.querySelector('.table-details');
+            if (details) {
+                const ref_fields = details.querySelectorAll('.reference-field');
+                ref_fields.forEach(p => {
+                    // Check if this paragraph contains a list (likely a reference field)
+                    if (p.querySelector('ul.fields-list')) {
+                        if (isCompactMode) {
+                            p.style.display = 'none';
+                        } else {
+                            p.style.display = '';
+                        }
+                    }
+                });
+            }
+        });
+        
+        toggleBtn.textContent = isCompactMode ? 'Normal' : 'Compact';
+    }
+    </script>
+    
     </body>
     </html>
     
