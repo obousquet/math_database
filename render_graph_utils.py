@@ -1,11 +1,9 @@
-import importlib.util
 import json
-from pathlib import Path
 import load_utils
-import pygraphviz as pgv
 from typing import List, Dict, Any
 import render_utils
 import re
+import html
 
 # Node: {"id": str, "label": str, "ref": str}
 # Edge: {"source": str, "target": str, "ref": str, "label": str}
@@ -22,7 +20,8 @@ def render_graph_html(
     page_url_lookup: Dict[str, str],
     graph_name: str = "Graph",
     data_dir: str = None,
-    base_url: str = "/" 
+    base_url: str = "/",
+    mode: str = "static",
 ) -> str:
     # Build DOT source for graphviz.js
     dot_lines = ['strict digraph "" {graph [bgcolor=transparent];']
@@ -42,18 +41,33 @@ def render_graph_html(
         if "style" in node:
             attrs.append(f'style={node["style"]}')
         dot_lines.append(f'"{node["id"]}" [{", ".join(attrs)}];')
-    for edge in edges:
+    
+    # Add invisible edge label nodes for clickability
+    for edge_idx, edge in enumerate(edges):
+        edge_label_node = f"__edge__{edge_idx}"
+        edge_label = edge.get("label", "•")  # Use bullet point if no label
+        # Create a small clickable node for the edge label
+        dot_lines.append(f'"{edge_label_node}" [shape=box, style=filled, fillcolor="#f0f0f0", fontsize=10, width=0.3, height=0.3, label="{edge_label}"];')
+    
+    # Now add edges with invisible labels (the label is on the node instead)
+    for edge_idx, edge in enumerate(edges):
+        edge_label_node = f"__edge__{edge_idx}"
         attrs = []
-        if "label" in edge:
-            label = edge["label"].replace('"', '\"')
-            attrs.append(f'label="{label}"')
+        attrs.append('label=""')  # No label on edge itself
         if "color" in edge:
             attrs.append(f'color="{edge["color"]}"')
+        else:
+            attrs.append('color="#888888"')
         if "arrowhead" in edge:
             attrs.append(f'arrowhead={edge["arrowhead"]}')
         if "style" in edge:
             attrs.append(f'style={edge["style"]}')
-        dot_lines.append(f'"{edge["source"]}" -> "{edge["target"]}" [{", ".join(attrs)}];')
+        attrs.append('arrowsize=0.7')
+        
+        # Split the edge into two parts: source -> label_node -> target
+        dot_lines.append(f'"{edge["source"]}" -> "{edge_label_node}" [{", ".join(attrs)}, dir=none];')
+        dot_lines.append(f'"{edge_label_node}" -> "{edge["target"]}" [{", ".join(attrs)}];')
+    
     dot_lines.append('}')
     dot_src = " ".join(dot_lines)
 
@@ -72,17 +86,46 @@ def render_graph_html(
                 schema=cache.get_table_schema(table),
                 entry=entry,
                 data_dir=data_dir,
-                mode="static"
+                mode=mode
             )
         else:
             card_html = f'<div class="table-card"><h3>{node.get("label", node["id"])} (no details)</h3></div>'
         node_cards[node["id"]] = card_html.replace('"', '\"').replace("'", "\'")
 
+    # Prepare edge cards
+    edge_cards = {}
+    for edge_idx, edge in enumerate(edges):
+        ref = edge.get("ref")
+        label_ref = edge.get("label_ref")
+        entry = None
+        table = None
+        if ref:
+            table, entry = cache.lookup(ref)
+            if entry:
+                card_html = render_utils.render_card(
+                    table_name=table,
+                    schema=cache.get_table_schema(table),
+                    entry=entry,
+                    data_dir=data_dir,
+                    mode=mode
+                )
+                edge_cards['__edge__' + str(edge_idx)] = card_html.replace('"', '\"').replace("'", "\'")
+        if label_ref:
+            table, entry = cache.lookup(label_ref)
+            if entry:
+                card_html = render_utils.render_card(
+                    table_name=table,
+                    schema=cache.get_table_schema(table),
+                    entry=entry,
+                    data_dir=data_dir,
+                    mode=mode
+                )
+                edge_cards['__label__' + str(edge_idx)] = card_html.replace('"', '\"').replace("'", "\'")
     # HTML template
     head = """
     <link rel="stylesheet" href="styles/graph.css" />
     """
-    html = f"""
+    html_str = f"""
     <div id='graph-container-main' class='graph-container-main'>
         <div id='graph'></div>
         <div id='node-modal' class='node-modal'>
@@ -98,6 +141,7 @@ def render_graph_html(
     <script src="js/d3-graphviz.js"></script>
     <script>
     const nodeCards = {json.dumps(node_cards)};
+    const edgeCards = {json.dumps(edge_cards)};
     document.addEventListener('DOMContentLoaded', function() {{
         const graphContainer = d3.select('#graph-container-main');
         let width = graphContainer.node().clientWidth;
@@ -110,17 +154,35 @@ def render_graph_html(
             .fit(true)
             .renderDot(`{dot_src}`)
             .on('end', function() {{
-                d3.selectAll('.node').on('click', function() {{
-                    var node_id = d3.select(this).attr('id');
+                d3.selectAll('.node').on('click', function(event) {{
                     var node_id = d3.select(this).select('title').text();
                     if (!node_id) {{
                         node_id = d3.select(this).select('text').text();
                     }}
-                    var modal = document.getElementById('node-modal');
-                    var content = document.getElementById('node-modal-content');
-                    content.innerHTML = nodeCards[node_id] || '<div class="table-card"><h3>' + node_id + '</h3></div>';
-                    modal.style.display = 'block';
-                    if (window.MathJax) MathJax.typesetPromise([content]);
+                    
+                    // Check if this is an edge label node
+                    if (node_id.startsWith('__edge__')) {{
+                        var edge_idx = parseInt(node_id.replace('__edge__', ''));
+                        // Get the edge card by index
+                        var edge_card = edgeCards[node_id];
+                        var edge_label_key = '__label__' + edge_idx;
+                        // If there's a label card, show it instead
+                        if (edgeCards[edge_label_key]) {{
+                            edge_card = edgeCards[edge_label_key];
+                        }}
+                        var modal = document.getElementById('node-modal');
+                        var content = document.getElementById('node-modal-content');
+                        content.innerHTML = edge_card || '<div class="table-card"><h3>Edge ' + edge_idx + '</h3></div>';
+                        modal.style.display = 'block';
+                        if (window.MathJax) MathJax.typesetPromise([content]);
+                    }} else {{
+                        // Regular node
+                        var modal = document.getElementById('node-modal');
+                        var content = document.getElementById('node-modal-content');
+                        content.innerHTML = nodeCards[node_id] || '<div class="table-card"><h3>' + node_id + '</h3></div>';
+                        modal.style.display = 'block';
+                        if (window.MathJax) MathJax.typesetPromise([content]);
+                    }}
                 }});
             }});
         // Close modal when clicking outside
@@ -136,7 +198,7 @@ def render_graph_html(
     return render_utils.render_base_page_template(
         title=graph_name,
         table_name=None,
-        content=html,
+        content=html_str,
         data_dir=data_dir,
         extra_scripts=scripts,
         extra_head=head,
@@ -144,7 +206,7 @@ def render_graph_html(
         base_url=base_url
     )
 
-def render_named_graph_html(data_dir: str, short_name: str, base_url: str = "/") -> str:
+def render_named_graph_html(data_dir: str, short_name: str, base_url: str = "/", mode: str = "static") -> str:
     """
     Renders a graph by short_name, loading the correct module and function from main.json.
     """
@@ -170,6 +232,6 @@ def render_named_graph_html(data_dir: str, short_name: str, base_url: str = "/")
             if url:
                 page_url_lookup[ref] = url
     graph_name = graph_info.get("name", short_name)
-    return render_graph_html(nodes, edges, page_url_lookup, graph_name=graph_name, data_dir=data_dir, base_url=base_url)
+    return render_graph_html(nodes, edges, page_url_lookup, graph_name=graph_name, data_dir=data_dir, base_url=base_url, mode=mode)
 
 

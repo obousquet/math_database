@@ -28,7 +28,7 @@ def make_filename(entry):
 @app.route('/graphs/<short_name>.html')
 def serve_named_graph(short_name):
     import render_graph_utils
-    html = render_graph_utils.render_named_graph_html(DATA_DIR, short_name)
+    html = render_graph_utils.render_named_graph_html(DATA_DIR, short_name, base_url="/", mode="server")
     return Response(html, mimetype='text/html')
 
 @app.route('/api/save_entry/<table>', methods=['POST'])

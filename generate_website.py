@@ -182,7 +182,7 @@ def main():
         short_name = graph.get("short_name")
         if not short_name:
             continue
-        graph_html = render_graph_utils.render_named_graph_html(data_dir, short_name, base_url=base_url)
+        graph_html = render_graph_utils.render_named_graph_html(data_dir, short_name, base_url=base_url, mode="static")
         graph_file = graphs_dir / f"{short_name}.html"
         with open(graph_file, "w", encoding="utf-8") as gf:
             gf.write(graph_html)
