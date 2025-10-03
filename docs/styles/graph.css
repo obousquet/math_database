@@ -9,20 +9,19 @@
 }
 
 #graph { width: 100%; height: 100%; }
-#node-modal { z-index:1000; }
 
 .node-modal {
     display:none;
     position:fixed;
     top:10%;
     left:50%;
-    transform:translateX(-50%);
+    transform:translateX(-30%);
     background:#fff;
     border:2px solid #4f3cc9;
     border-radius:8px;
     z-index:1000;
     max-height:1000px;
-    max-width:800px;
+    max-width:1500px;
     box-shadow:0 4px 24px rgba(0,0,0,0.18);
     overflow:hidden
 }
