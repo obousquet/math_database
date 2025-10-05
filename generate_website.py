@@ -115,7 +115,7 @@ def generate_table_html(table_name, table_path, data_dir, output_dir, base_url="
 def main():
     """Main function to generate the website."""
     parser = argparse.ArgumentParser(description="Generate Math Database static website.")
-    parser.add_argument("data_dir", type=str, help="Path to the data directory.")
+    parser.add_argument("--data_dir", type=str, help="Path to the data directory.")
     parser.add_argument("--output_dir", type=str, default=None, help="Path to the output directory (default: <data_dir>/../docs)")
     parser.add_argument("--deploy", type=bool, default=False, help="If set, we set the base_url to the homepage entry in main.json.")
     args = parser.parse_args()

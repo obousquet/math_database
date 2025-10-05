@@ -164,7 +164,7 @@ if __name__ == "__main__":
 
     # Parse command-line arguments for data directory
     parser = argparse.ArgumentParser(description="Math Database Server")
-    parser.add_argument('--data-dir', type=str, default=None, help='Path to data directory')
+    parser.add_argument('--data_dir', type=str, default=None, help='Path to data directory')
     args, _ = parser.parse_known_args()
 
     # Set the data directory (priority: CLI > env > default)

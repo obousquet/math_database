@@ -9,11 +9,40 @@ def generate(cache: TableEntriesCache) -> Dict[str, List[Dict[str, Any]]]:
     Returns:
         {
             "nodes": [ {"id": str, "label": str, "ref": str, "type": str} ],
-            "edges": [ {"source": str, "target": str, "ref": str, "label": str} ]
+            "edges": [ {"source": str, "target": str, "ref": str, "label": str} ],
+            "legend": [ {"type": "node"|"edge", "label": str, "text": str, ...styling} ]
         }
     """
     nodes = []
     edges = []
+    legend = []
+    
+    # Define legend items
+    legend.append({
+        "type": "node",
+        "label": "Mathematician",
+        "text": "Mathematician",
+        "shape": "ellipse",
+        "color": "#4F81BD",
+        "fillcolor": "#D9E1F2",
+    })
+    legend.append({
+        "type": "node",
+        "label": "Equation",
+        "text": "Equation",
+        "shape": "box",
+        "color": "#C0504D",
+        "fillcolor": "#F2DCDB",
+    })
+    legend.append({
+        "type": "edge",
+        "label": "",
+        "text": "Author relationship",
+        "style": "dashed",
+        "color": "#C0504D",
+        "arrowhead": "open",
+    })
+    
     # Add mathematician nodes
     for m in cache.get_table_entries("mathematicians"):
         nodes.append({
@@ -51,4 +80,4 @@ def generate(cache: TableEntriesCache) -> Dict[str, List[Dict[str, Any]]]:
                 "color": "#C0504D",
                 "arrowhead": "open",
             })
-    return {"nodes": nodes, "edges": edges}
+    return {"nodes": nodes, "edges": edges, "legend": legend}
