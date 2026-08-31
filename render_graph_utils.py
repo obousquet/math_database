@@ -52,28 +52,39 @@ def render_graph_html(
             attrs.append(f'style={node["style"]}')
         dot_lines.append(f'"{node["id"]}" [{", ".join(attrs)}];')
 
-    # A repository graph hook may assign integer ranks to its nodes.  Grouping
-    # each rank in a DOT ``rank=same`` block lets a condensed preorder render
-    # from its sources at the top while retaining every original node.
+    # Witnesses are the only edge labels that need a clickable graph node.
+    # Ordinary relationships remain direct arrows, avoiding a synthetic node
+    # (and two separately routed splines) for every edge.
+    witness_nodes = [
+        (edge_idx, edge)
+        for edge_idx, edge in enumerate(edges)
+        if edge.get("label")
+    ]
+
+    # A repository graph hook may assign ranks to its nodes.  Grouping each
+    # rank in a DOT ``rank=same`` block lets a condensed preorder render from
+    # its sources at the top while retaining every original node.  A witness
+    # may similarly supply a midpoint rank between the two parameter nodes.
     rank_groups = {}
     for node in nodes:
         if "rank" in node:
             rank_groups.setdefault(node["rank"], []).append(node["id"])
+    for edge_idx, edge in witness_nodes:
+        if "label_rank" in edge:
+            rank_groups.setdefault(edge["label_rank"], []).append(f"__edge__{edge_idx}")
     for _, node_ids in sorted(rank_groups.items()):
         dot_lines.append('{rank=same; ' + '; '.join(f'"{node_id}"' for node_id in node_ids) + ';}')
     
-    # Add invisible edge label nodes for clickability
-    for edge_idx, edge in enumerate(edges):
+    # Add witness nodes for clickability and for their visible class labels.
+    for edge_idx, edge in witness_nodes:
         edge_label_node = f"__edge__{edge_idx}"
-        edge_label = edge.get("label", "•")  # Use bullet point if no label
-        # Create a small clickable node for the edge label
+        edge_label = edge["label"]
         dot_lines.append(f'"{edge_label_node}" [shape=box, style=filled, fillcolor="#f0f0f0", fontsize=10, width=0.3, height=0.3, label="{edge_label}"];')
     
-    # Now add edges with invisible labels (the label is on the node instead)
+    witness_indexes = {edge_idx for edge_idx, _ in witness_nodes}
     for edge_idx, edge in enumerate(edges):
-        edge_label_node = f"__edge__{edge_idx}"
         attrs = []
-        attrs.append('label=""')  # No label on edge itself
+        attrs.append('label=""')
         if "color" in edge:
             attrs.append(f'color="{edge["color"]}"')
         else:
@@ -82,13 +93,17 @@ def render_graph_html(
             attrs.append(f'arrowhead={edge["arrowhead"]}')
         if "style" in edge:
             attrs.append(f'style={edge["style"]}')
-        if edge.get("constraint") is False:
+        if edge.get("constraint") is False and edge_idx not in witness_indexes:
             attrs.append('constraint=false')
         attrs.append('arrowsize=0.7')
-        
-        # Split the edge into two parts: source -> label_node -> target
-        dot_lines.append(f'"{edge["source"]}" -> "{edge_label_node}" [{", ".join(attrs)}, dir=none];')
-        dot_lines.append(f'"{edge_label_node}" -> "{edge["target"]}" [{", ".join(attrs)}];')
+        if edge_idx in witness_indexes:
+            edge_label_node = f"__edge__{edge_idx}"
+            # The two constrained links ensure the class is vertically placed
+            # between the parameters rather than floating with overlay edges.
+            dot_lines.append(f'"{edge["source"]}" -> "{edge_label_node}" [{", ".join(attrs)}, dir=none, minlen=1];')
+            dot_lines.append(f'"{edge_label_node}" -> "{edge["target"]}" [{", ".join(attrs)}, minlen=1];')
+        else:
+            dot_lines.append(f'"{edge["source"]}" -> "{edge["target"]}" [{", ".join(attrs)}];')
     
     dot_lines.append('}')
     dot_src = " ".join(dot_lines)
@@ -371,4 +386,3 @@ def render_named_graph_html(data_dir: str, short_name: str, base_url: str = "/",
     legend = graph_data.get("legend", [])
     graph_name = graph_info.get("name", short_name)
     return render_graph_html(nodes, edges, legend=legend, graph_name=graph_name, data_dir=data_dir, base_url=base_url, mode=mode)
-
