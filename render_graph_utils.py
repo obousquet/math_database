@@ -51,6 +51,16 @@ def render_graph_html(
         if "style" in node:
             attrs.append(f'style={node["style"]}')
         dot_lines.append(f'"{node["id"]}" [{", ".join(attrs)}];')
+
+    # A repository graph hook may assign integer ranks to its nodes.  Grouping
+    # each rank in a DOT ``rank=same`` block lets a condensed preorder render
+    # from its sources at the top while retaining every original node.
+    rank_groups = {}
+    for node in nodes:
+        if "rank" in node:
+            rank_groups.setdefault(node["rank"], []).append(node["id"])
+    for _, node_ids in sorted(rank_groups.items()):
+        dot_lines.append('{rank=same; ' + '; '.join(f'"{node_id}"' for node_id in node_ids) + ';}')
     
     # Add invisible edge label nodes for clickability
     for edge_idx, edge in enumerate(edges):
@@ -72,6 +82,8 @@ def render_graph_html(
             attrs.append(f'arrowhead={edge["arrowhead"]}')
         if "style" in edge:
             attrs.append(f'style={edge["style"]}')
+        if edge.get("constraint") is False:
+            attrs.append('constraint=false')
         attrs.append('arrowsize=0.7')
         
         # Split the edge into two parts: source -> label_node -> target
@@ -359,5 +371,4 @@ def render_named_graph_html(data_dir: str, short_name: str, base_url: str = "/",
     legend = graph_data.get("legend", [])
     graph_name = graph_info.get("name", short_name)
     return render_graph_html(nodes, edges, legend=legend, graph_name=graph_name, data_dir=data_dir, base_url=base_url, mode=mode)
-
 
