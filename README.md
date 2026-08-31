@@ -2,6 +2,8 @@
 
 A Python application that generates static HTML websites from structured mathematical data, perfect for hosting on GitHub Pages.
 
+Requires Python 3.10 or later.
+
 ## Features
 
 - **Data-driven**: Organizes data in a structured directory format with schemas

@@ -1,8 +1,6 @@
 # Math Database HTML Generator Requirements
 # 
-# Python >= 3.6
+# Python >= 3.10
 Flask>=2.0
-matplotlib
 pybtex
 markdown
-pygraphviz

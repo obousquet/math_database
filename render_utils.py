@@ -419,57 +419,56 @@ def render_card(table_name, schema, entry, data_dir, mode="static", make_title=N
         if not col.get('rendered', True):
             continue
         col_type = col.get('type', 'string')
-        match col_type:
-            case 'string':
-                field = render_string_field(col_label, col_value, table_name, data_dir)
-            case 'integer':
-                field = f'<p><strong>{col_label}:</strong> {str(col_value) if col_value is not None else ""}</p>'
-            case 'boolean':
-                if col_value is True:
-                    display = "Yes"
-                elif col_value is False:
-                    display = "No"
-                else:
-                    display = "Unspecified"
-                field = f'<p><strong>{col_label}:</strong> {display}</p>'
-            case 'text':
-                field = render_text_field(col_label, col_value, data_dir)
-            case 'latex':
-                field = render_latex_field(col_label, col_value)
-            case 'enum':
-                field = f'<p><strong>{col_label}:</strong> {get_enum_display_name(table_name, col_name, col_value, data_dir)}</p>'
-            case 'array':
-                field = f'<p><strong>{col_label}:</strong>'
-                if isinstance(col_value, list):
+        if col_type == 'string':
+            field = render_string_field(col_label, col_value, table_name, data_dir)
+        elif col_type == 'integer':
+            field = f'<p><strong>{col_label}:</strong> {str(col_value) if col_value is not None else ""}</p>'
+        elif col_type == 'boolean':
+            if col_value is True:
+                display = "Yes"
+            elif col_value is False:
+                display = "No"
+            else:
+                display = "Unspecified"
+            field = f'<p><strong>{col_label}:</strong> {display}</p>'
+        elif col_type == 'text':
+            field = render_text_field(col_label, col_value, data_dir)
+        elif col_type == 'latex':
+            field = render_latex_field(col_label, col_value)
+        elif col_type == 'enum':
+            field = f'<p><strong>{col_label}:</strong> {get_enum_display_name(table_name, col_name, col_value, data_dir)}</p>'
+        elif col_type == 'array':
+            field = f'<p><strong>{col_label}:</strong>'
+            if isinstance(col_value, list):
+                items_html = "<ul class='fields-list'>"
+                for item in col_value:
+                    items_html += f"<li>{maybe_linked(item, data_dir=data_dir)}</li>"
+                items_html += "</ul>"
+                field += items_html + '</p>'
+        elif col_type == 'reference':
+            # Reference fields: auto-populate from another table/column
+            ref_table = col.get('table')
+            ref_column = col.get('column')
+            header = f'<div class="reference-field"><p><strong>{col_label}:</strong>'
+            if ref_table and ref_column:
+                # Find all entries in ref_table where ref_column == entry['short_name'] or entry['id']
+                ref_entries = []
+                for ref_entry in cache.get_table_entries(ref_table):
+                    if match(ref_entry.get(ref_column), entry, table=table_name):
+                        ref_entries.append(ref_entry)
+                if ref_entries:
+                    # Display as a list of links or names
                     items_html = "<ul class='fields-list'>"
-                    for item in col_value:
-                        items_html += f"<li>{maybe_linked(item, data_dir=data_dir)}</li>"
+                    for ref_entry in ref_entries:
+                        display = ref_entry.get('name', ref_entry.get('short_name', str(ref_entry.get('id', ''))))
+                        link = f"{ref_table}/{ref_entry.get('short_name', ref_entry.get('id'))}.html"
+                        items_html += f"<li><a href='{link}'>{display}</a></li>"
                     items_html += "</ul>"
-                    field += items_html + '</p>'
-            case 'reference':
-                # Reference fields: auto-populate from another table/column
-                ref_table = col.get('table')
-                ref_column = col.get('column')
-                header = f'<div class="reference-field"><p><strong>{col_label}:</strong>'
-                if ref_table and ref_column:
-                    # Find all entries in ref_table where ref_column == entry['short_name'] or entry['id']
-                    ref_entries = []
-                    for ref_entry in cache.get_table_entries(ref_table):
-                        if match(ref_entry.get(ref_column), entry, table=table_name):
-                            ref_entries.append(ref_entry)
-                    if ref_entries:
-                        # Display as a list of links or names
-                        items_html = "<ul class='fields-list'>"
-                        for ref_entry in ref_entries:
-                            display = ref_entry.get('name', ref_entry.get('short_name', str(ref_entry.get('id', ''))))
-                            link = f"{ref_table}/{ref_entry.get('short_name', ref_entry.get('id'))}.html"
-                            items_html += f"<li><a href='{link}'>{display}</a></li>"
-                        items_html += "</ul>"
-                        field = f'{header}{items_html}</p></div>'
-                    else:
-                        field = f'{header} <em>None</em></p></div>'
+                    field = f'{header}{items_html}</p></div>'
                 else:
-                    field = f'{header} <em>Invalid reference config</em></p></div>'
+                    field = f'{header} <em>None</em></p></div>'
+            else:
+                field = f'{header} <em>Invalid reference config</em></p></div>'
         card_content += field + '\n'
     html = f"""
     <div class="table-card" id="math-{entry['id']}" style="position:relative;">

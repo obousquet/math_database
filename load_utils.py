@@ -2,8 +2,7 @@ import json
 from pathlib import Path
 import functools
 import importlib.util
-
-from matplotlib import table
+from typing import Union
 
 def load_json_file(filepath):
     """Load and parse a JSON file."""
@@ -88,7 +87,7 @@ class TableEntriesCache:
                 entries.append(entry)
         return entries
 
-    def remove(self, table, entry_id: int | str):
+    def remove(self, table, entry_id: Union[int, str]):
         key = str(table)
         entries = self.get_table_entries(table)
         new_entries = [e for e in entries if e.get('id') != entry_id and e.get('short_name') != entry_id]
