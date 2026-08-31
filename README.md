@@ -42,18 +42,19 @@ data/
 9. **Generate static website**: Run the generator with the following command:
 
   ```bash
-  python generate_website.py DATA_DIR [--output_dir OUTPUT_DIR]
+  python generate_website.py --data_dir DATA_DIR [--output_dir OUTPUT_DIR] [--deploy true]
   ```
 
-  - `DATA_DIR` (required): Path to your data directory (e.g. `data/`)
+  - `--data_dir DATA_DIR` (required): Path to your data directory (e.g. `data/`)
   - `--output_dir OUTPUT_DIR` (optional): Path to the output directory (default: `../docs` relative to your data directory)
+  - `--deploy true` (optional): Use the `deploy_url` in `main.json` as the base URL for generated links. Use this when publishing to a GitHub Pages project site.
 
   Example:
   ```bash
-  python generate_website.py data/ --output_dir docs/
+  python generate_website.py --data_dir data/ --output_dir docs/ --deploy true
   ```
 
-The generated website will be placed in the output directory, ready for GitHub Pages.
+The generated website will be placed in the output directory, ready for GitHub Pages. The output directory is cleared before generation, so ensure `--output_dir` points only to generated site files.
 
 ## Editing Data Locally
 
@@ -119,7 +120,7 @@ def render_table_page(rows, schema):
 2. Set up your data following the structure above
 3. Run the generator:
    ```bash
-   python generate_website.py
+   python generate_website.py --data_dir data/ --output_dir docs/
    ```
 4. Open `docs/index.html` in your browser to preview
 5. Deploy to GitHub Pages:
@@ -168,6 +169,18 @@ This repository includes example data for:
 4. Select "main" branch and "/docs" folder
 5. Your site will be available at `https://yourusername.github.io/your-repo-name`
 
+For a project site, add a `deploy_url` to `data/main.json` and generate with deploy mode so links include the repository path:
+
+```json
+{
+  "deploy_url": "https://yourusername.github.io/your-repo-name/"
+}
+```
+
+```bash
+python generate_website.py --data_dir data/ --output_dir docs/ --deploy true
+```
+
 ## Customization
 
 - Modify `styles.css` to change the appearance
@@ -182,6 +195,6 @@ This repository includes example data for:
 
 ## Workflow Summary
 
-- Use `generate_website.py` to generate static HTML pages for deployment (no editing capability).
+- Use `generate_website.py --data_dir DATA_DIR --output_dir DOCS_DIR --deploy true` to generate static HTML pages for a GitHub Pages project site (no editing capability).
 - Use `server.py` to run a local server for editing and previewing the database interactively.
 - After editing locally, commit and push your changes, then make a PR to update the static site on GitHub Pages.
