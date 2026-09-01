@@ -133,8 +133,10 @@ def render_graph_html(
                 summary or "No concise summary has been recorded yet. Open the parameter page for the full catalogue entry.",
                 data_dir,
             )
-            relationships_html = render_utils.render_parameter_relationships(entry, cache, link_prefix="../")
-            row_link = f'../{table}/{entry["short_name"]}.html' if entry.get("short_name") else None
+            # Pages declare a site-wide <base> URL, so popup links must be
+            # relative to that base rather than to graphs/hasse.html.
+            relationships_html = render_utils.render_parameter_relationships(entry, cache)
+            row_link = f'{table}/{entry["short_name"]}.html' if entry.get("short_name") else None
             title_html = f'<h3><a href="{row_link}" class="table-title-link">{title}</a></h3>' if row_link else f"<h3>{title}</h3>"
             card_html = f'<div class="table-card">{title_html}{symbol}{summary_html}{relationships_html}</div>'
         elif entry:
