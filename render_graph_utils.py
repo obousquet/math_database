@@ -274,6 +274,20 @@ def render_graph_html(
     const nodeCards = {json.dumps(node_cards)};
     const edgeCards = {json.dumps(edge_cards)};
     const legendItems = {json.dumps(legend_items_data)};
+    function typesetModalContent(content) {{
+        // Cards inserted into the modal are not present when the page-level
+        // MathJax initializer runs.  In particular, generic class cards use
+        // .latex-equation/data-latex wrappers, whose contents need delimiters
+        // before MathJax can recognise them as mathematics.
+        content.querySelectorAll('.latex-equation').forEach(function(equation) {{
+            const latex = equation.getAttribute('data-latex');
+            if (latex) equation.textContent = '$$' + latex + '$$';
+        }});
+        if (window.MathJax && typeof MathJax.typesetPromise === 'function') {{
+            MathJax.typesetClear([content]);
+            MathJax.typesetPromise([content]);
+        }}
+    }}
     document.addEventListener('DOMContentLoaded', function() {{
         console.log('Initializing graph visualization');
         const graphContainer = d3.select('#graph-container-main');
@@ -309,14 +323,14 @@ def render_graph_html(
                         var content = document.getElementById('node-modal-content');
                         content.innerHTML = edge_card || '<div class="table-card"><h3>Edge ' + edge_idx + '</h3></div>';
                         modal.style.display = 'block';
-                        if (window.MathJax) MathJax.typesetPromise([content]);
+                        typesetModalContent(content);
                     }} else {{
                         // Regular node
                         var modal = document.getElementById('node-modal');
                         var content = document.getElementById('node-modal-content');
                         content.innerHTML = nodeCards[node_id] || '<div class="table-card"><h3>' + node_id + '</h3></div>';
                         modal.style.display = 'block';
-                        if (window.MathJax) MathJax.typesetPromise([content]);
+                        typesetModalContent(content);
                     }}
                 }});
             }});
