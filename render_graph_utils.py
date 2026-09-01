@@ -117,7 +117,22 @@ def render_graph_html(
         table = None
         if ref:
             table, entry = cache.lookup(ref)
-        if entry:
+        if entry and table == "parameters":
+            # Graph popups should stay readable at a glance.  Parameter pages
+            # retain the complete record, while this concise database-owned
+            # summary is intentionally the only prose shown in the graph.
+            summary = (
+                entry.get("graph_summary")
+                or entry.get("description")
+                or entry.get("definition")
+            )
+            title = html.escape(entry.get("name", node.get("label", node["id"])))
+            symbol = render_utils.render_latex_field("Symbol", entry.get("symbol", ""))
+            summary_html = render_utils.render_text_field("Summary", summary, data_dir)
+            row_link = f'{table}/{entry["short_name"]}.html' if entry.get("short_name") else None
+            title_html = f'<h3><a href="{row_link}" class="table-title-link">{title}</a></h3>' if row_link else f"<h3>{title}</h3>"
+            card_html = f'<div class="table-card">{title_html}{symbol}{summary_html}</div>'
+        elif entry:
             card_html = render_utils.render_card(
                 table_name=table,
                 schema=cache.get_table_schema(table),
