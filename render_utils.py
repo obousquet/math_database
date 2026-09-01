@@ -371,6 +371,53 @@ def get_enum_display_name(table, column, value, data_dir):
             return display
     return value
 
+
+def render_relationship_statement(relationship, cache, link_prefix=""):
+    """Render a relationship as the mathematical statement it records."""
+    _, first = cache.lookup(relationship.get("parameter_1_id"))
+    _, second = cache.lookup(relationship.get("parameter_2_id"))
+    if not first or not second:
+        return html.escape(relationship.get("name", relationship.get("short_name", "Relationship")))
+
+    def math_content(parameter, fallback):
+        symbol = str(parameter.get("symbol") or parameter.get("name", fallback))
+        if symbol.startswith("$") and symbol.endswith("$"):
+            symbol = symbol[1:-1]
+        return html.escape(symbol)
+
+    first_symbol = math_content(first, "P_1")
+    second_symbol = math_content(second, "P_2")
+    formulas = {
+        "larger": f"{first_symbol} \\ge {second_symbol}",
+        "larger_c": f"{first_symbol} \\ge c{second_symbol}",
+        "equivalence": f"{first_symbol} = {second_symbol}",
+        "log": f"{first_symbol} \\ge c\\log {second_symbol}",
+        "sqrt": f"{first_symbol} \\ge c\\sqrt{{{second_symbol}}}",
+        "inv_log": f"{first_symbol} \\ge \\frac{{c{second_symbol}}}{{\\log n}}",
+    }
+    formula = formulas.get(relationship.get("relationship_type"), f"{first_symbol} ? {second_symbol}")
+    variant = relationship.get("variant")
+    variant_html = f" <span class=\"relationship-variant\">({html.escape(variant)})</span>" if variant else ""
+    relationship_link = f"{link_prefix}relationships/{relationship.get('short_name', relationship.get('id'))}.html"
+    return f'<a href="{relationship_link}" class="relationship-statement">${formula}${variant_html}</a>'
+
+
+def render_parameter_relationships(entry, cache, link_prefix=""):
+    """Render all facts involving a parameter once, independent of endpoint order."""
+    relationships = [
+        relationship
+        for relationship in cache.get_table_entries("relationships")
+        if match(relationship.get("parameter_1_id"), entry, table="parameters")
+        or match(relationship.get("parameter_2_id"), entry, table="parameters")
+    ]
+    if not relationships:
+        return '<div class="reference-field"><p><strong>Relationships:</strong> <em>None</em></p></div>'
+    items = "".join(
+        f"<li>{render_relationship_statement(relationship, cache, link_prefix)}</li>"
+        for relationship in relationships
+    )
+    return f'<div class="reference-field"><p><strong>Relationships:</strong><ul class="fields-list">{items}</ul></p></div>'
+
 def get_next_id(table_name, data_dir):
     """Return the next available id (as a string) for a table, assuming numeric ids."""
     cache = load_utils.get_table_entries_cache(data_dir)
@@ -446,6 +493,12 @@ def render_card(table_name, schema, entry, data_dir, mode="static", make_title=N
                 items_html += "</ul>"
                 field += items_html + '</p>'
         elif col_type == 'reference':
+            if table_name == "parameters" and col_name == "related_relationships_1":
+                field = render_parameter_relationships(entry, cache)
+                card_content += field + '\n'
+                continue
+            if table_name == "parameters" and col_name == "related_relationships_2":
+                continue
             # Reference fields: auto-populate from another table/column
             ref_table = col.get('table')
             ref_column = col.get('column')
