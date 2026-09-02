@@ -100,7 +100,10 @@ def render_graph_html(
     for edge_idx, edge in witness_nodes:
         edge_label_node = f"__edge__{edge_idx}"
         edge_label = edge["label"]
-        dot_lines.append(f'"{edge_label_node}" [shape=box, style=filled, fillcolor="#f0f0f0", fontsize=10, width=0.3, height=0.3, label="{edge_label}"];')
+        label_shape = edge.get("label_shape", "box")
+        label_color = edge.get("label_color", "#888888")
+        label_fillcolor = edge.get("label_fillcolor", "#f0f0f0")
+        dot_lines.append(f'"{edge_label_node}" [shape={label_shape}, color="{label_color}", style=filled, fillcolor="{label_fillcolor}", fontsize=10, width=0.3, height=0.3, label="{edge_label}"];')
     
     witness_indexes = {edge_idx for edge_idx, _ in witness_nodes}
     for edge_idx, edge in enumerate(edges):
