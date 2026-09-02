@@ -362,32 +362,34 @@ def render_graph_html(
         const distance = Math.hypot(dx, dy) || 1;
         const middle = {{x: (source.center.x + target.center.x) / 2,
                         y: (source.center.y + target.center.y) / 2}};
-        // Prefer gentle, alternating curves, but progressively move an edge
-        // aside until it has a clear route through the placed node boxes.
+        // Prefer gentle, alternating curves.  Keep the bend bounded: an
+        // overlay that escapes far beyond the placed graph is harder to read
+        // than one that briefly passes behind an intervening node.
         const signs = index % 2 ? [1, -1] : [-1, 1];
-        const extent = otherNodes.reduce(function(maximum, node) {{
-            return Math.max(maximum, node.box.width, node.box.height,
-                Math.abs(node.center.x - middle.x), Math.abs(node.center.y - middle.y));
-        }}, distance);
-        const bends = [0, 16, 32, 56, 88, 128, 184, 256, 352, 480,
-                       640, extent * 1.25, extent * 2.25];
-        let fallback = null;
+        const maxBend = Math.min(160, Math.max(36, distance * 0.18));
+        const bends = Array.from(new Set(
+            [0, 12, 24, 40, 60, 84, 112, maxBend].filter(function(bend) {{ return bend <= maxBend; }})
+        ));
+        let best = null;
         for (const bend of bends) {{
             for (const sign of signs) {{
                 const control = {{x: middle.x - dy / distance * bend * sign,
                                  y: middle.y + dx / distance * bend * sign}};
                 const start = clipToBox(source.box, source.center, control);
                 const end = clipToBox(target.box, target.center, control);
-                if (!fallback) fallback = {{start, control, end}};
-                if (!otherNodes.some(function(node) {{
-                    return curveHitsNode(start, control, end, node.box)
-                        || labelHitsNode(start, control, end, label, node.box);
-                }})) {{
+                const collisions = otherNodes.reduce(function(total, node) {{
+                    return total + Number(curveHitsNode(start, control, end, node.box)
+                        || labelHitsNode(start, control, end, label, node.box));
+                }}, 0);
+                if (!best || collisions < best.collisions) {{
+                    best = {{start, control, end, collisions}};
+                }}
+                if (collisions === 0) {{
                     return {{start, control, end}};
                 }}
             }}
         }}
-        return fallback;
+        return best;
     }}
     function drawDirectCurves() {{
         const svg = document.querySelector('#graph svg');
