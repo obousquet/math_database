@@ -81,18 +81,19 @@ def render_graph_html(
         if "label_rank" in edge:
             rank_groups.setdefault(edge["label_rank"], []).append(f"__edge__{edge_idx}")
     ordered_ranks = sorted(rank_groups)
-    rank_anchors = []
-    for rank_index, rank_value in enumerate(ordered_ranks):
-        anchor = f'__rank_anchor__{rank_index}'
-        rank_anchors.append(anchor)
-        node_ids = rank_groups[rank_value] + [anchor]
-        # The anchor has no visible footprint, but it gives the rank an actual
-        # vertex.  The invisible chain below then forces rank 0 above rank 1,
-        # rank 1 above rank 2, and so on—even for a rank containing only
-        # overlay-connected nodes.
-        dot_lines.append(f'"{anchor}" [shape=point, width=0, height=0, label="", style=invis];')
+    rank_representatives = []
+    for rank_value in ordered_ranks:
+        node_ids = rank_groups[rank_value]
+        # A same-rank subgraph is enough to align the nodes.  Do not add a
+        # synthetic invisible point: Graphviz treats even a zero-size,
+        # invisible node as an obstacle when routing visible edges, which
+        # causes otherwise direct arrows to detour around rank anchors.
         dot_lines.append('{rank=same; ' + '; '.join(f'"{node_id}"' for node_id in node_ids) + ';}')
-    for upper, lower in zip(rank_anchors, rank_anchors[1:]):
+        # One real member can carry the ordering constraint for the rank.
+        # Unlike a synthetic anchor it has no extra footprint for edges to
+        # avoid; it is already a visible node in this graph.
+        rank_representatives.append(node_ids[0])
+    for upper, lower in zip(rank_representatives, rank_representatives[1:]):
         dot_lines.append(f'"{upper}" -> "{lower}" [style=invis, weight=1000, minlen=1];')
     
     # Add witness nodes for clickability and for their visible class labels.
