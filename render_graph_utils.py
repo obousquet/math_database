@@ -38,11 +38,10 @@ def render_graph_html(
     # Spell out the direction instead of relying on Graphviz's default, since
     # a graph with only same-rank blocks otherwise has no constraint ordering
     # those blocks with respect to one another.
-    # ``polyline`` keeps long overlay edges legible: Graphviz still avoids
-    # nodes, but it uses a small number of straight segments instead of the
-    # default smooth Bézier routes, which become visually wiggly in a dense
-    # ranked graph.
-    dot_lines = ['strict digraph "" {graph [bgcolor=transparent, rankdir=TB, newrank=true, splines=polyline];']
+    # Graphviz supplies node placement and ranks only.  The browser replaces
+    # these straight placeholder edges with direct Bézier curves after layout;
+    # this avoids Graphviz's obstacle-avoiding routes altogether.
+    dot_lines = ['strict digraph "" {graph [bgcolor=transparent, rankdir=TB, newrank=true, splines=line];']
     dot_lines.append('node [label="\\N", penwidth=1.8];')
     dot_lines.append('edge [arrowhead=vee];')
     for node in nodes:
@@ -60,26 +59,13 @@ def render_graph_html(
             attrs.append(f'style={node["style"]}')
         dot_lines.append(f'"{node["id"]}" [{", ".join(attrs)}];')
 
-    # Witnesses are the only edge labels that need a clickable graph node.
-    # Ordinary relationships remain direct arrows, avoiding a synthetic node
-    # (and two separately routed splines) for every edge.
-    witness_nodes = [
-        (edge_idx, edge)
-        for edge_idx, edge in enumerate(edges)
-        if edge.get("label")
-    ]
-
     # A repository graph hook may assign ranks to its nodes.  Grouping each
     # rank in a DOT ``rank=same`` block lets a condensed preorder render from
-    # its sources at the top while retaining every original node.  A witness
-    # may similarly supply a midpoint rank between the two parameter nodes.
+    # its sources at the top while retaining every original node.
     rank_groups = {}
     for node in nodes:
         if "rank" in node:
             rank_groups.setdefault(node["rank"], []).append(node["id"])
-    for edge_idx, edge in witness_nodes:
-        if "label_rank" in edge:
-            rank_groups.setdefault(edge["label_rank"], []).append(f"__edge__{edge_idx}")
     ordered_ranks = sorted(rank_groups)
     rank_representatives = []
     for rank_value in ordered_ranks:
@@ -96,18 +82,11 @@ def render_graph_html(
     for upper, lower in zip(rank_representatives, rank_representatives[1:]):
         dot_lines.append(f'"{upper}" -> "{lower}" [style=invis, weight=1000, minlen=1];')
     
-    # Add witness nodes for clickability and for their visible class labels.
-    for edge_idx, edge in witness_nodes:
-        edge_label_node = f"__edge__{edge_idx}"
-        edge_label = edge["label"]
-        label_shape = edge.get("label_shape", "box")
-        label_color = edge.get("label_color", "#888888")
-        label_fillcolor = edge.get("label_fillcolor", "#f0f0f0")
-        dot_lines.append(f'"{edge_label_node}" [shape={label_shape}, color="{label_color}", style=filled, fillcolor="{label_fillcolor}", fontsize=10, width=0.3, height=0.3, label="{edge_label}"];')
-    
-    witness_indexes = {edge_idx for edge_idx, _ in witness_nodes}
     for edge_idx, edge in enumerate(edges):
         attrs = []
+        # An SVG id lets the browser replace Graphviz's placeholder with a
+        # direct curve and attach an exact-midpoint witness label afterwards.
+        attrs.append(f'id="graph-edge-{edge_idx}"')
         attrs.append('label=""')
         if "color" in edge:
             attrs.append(f'color="{edge["color"]}"')
@@ -118,20 +97,10 @@ def render_graph_html(
         if "style" in edge:
             attrs.append(f'style={edge["style"]}')
         # An overlay is informative but must not alter the Hasse backbone.
-        # This applies equally to a labelled/witness edge: splitting it into
-        # two DOT edges must not accidentally restore a rank constraint.
         if edge.get("constraint") is False:
             attrs.append('constraint=false')
         attrs.append('arrowsize=0.7')
-        if edge_idx in witness_indexes:
-            edge_label_node = f"__edge__{edge_idx}"
-            # Backbone links constrain the hierarchy. Overlay links are
-            # constraint-free but keep their explicit midpoint rank, when the
-            # repository hook supplied one.
-            dot_lines.append(f'"{edge["source"]}" -> "{edge_label_node}" [{", ".join(attrs)}, dir=none, minlen=1];')
-            dot_lines.append(f'"{edge_label_node}" -> "{edge["target"]}" [{", ".join(attrs)}, minlen=1];')
-        else:
-            dot_lines.append(f'"{edge["source"]}" -> "{edge["target"]}" [{", ".join(attrs)}];')
+        dot_lines.append(f'"{edge["source"]}" -> "{edge["target"]}" [{", ".join(attrs)}];')
     
     dot_lines.append('}')
     dot_src = " ".join(dot_lines)
@@ -301,6 +270,12 @@ def render_graph_html(
     <script>
     const nodeCards = {json.dumps(node_cards)};
     const edgeCards = {json.dumps(edge_cards)};
+    const edgeGeometry = {json.dumps([{
+        "source": edge["source"],
+        "target": edge["target"],
+        "label": edge.get("label"),
+        "labelColor": edge.get("label_color", "#555555"),
+    } for edge in edges])};
     const legendItems = {json.dumps(legend_items_data)};
     function normalizeLatex(latex) {{
         // The catalogue has historically accepted both bare TeX and TeX
@@ -330,6 +305,86 @@ def render_graph_html(
             MathJax.typesetPromise([content]);
         }}
     }}
+    function showEdgeCard(edgeIdx) {{
+        var edgeCard = edgeCards['__label__' + edgeIdx] || edgeCards['__edge__' + edgeIdx];
+        if (!edgeCard) return;
+        var modal = document.getElementById('node-modal');
+        var content = document.getElementById('node-modal-content');
+        content.innerHTML = edgeCard;
+        modal.style.display = 'block';
+        typesetModalContent(content);
+    }}
+    function clipToBox(box, origin, direction) {{
+        const dx = direction.x - origin.x;
+        const dy = direction.y - origin.y;
+        const halfWidth = Math.max(1, box.width / 2);
+        const halfHeight = Math.max(1, box.height / 2);
+        const scale = 1 / Math.max(Math.abs(dx) / halfWidth, Math.abs(dy) / halfHeight, 1e-6);
+        return {{x: origin.x + dx * scale, y: origin.y + dy * scale}};
+    }}
+    function drawDirectCurves() {{
+        const svg = document.querySelector('#graph svg');
+        if (!svg) return;
+        const namespace = 'http://www.w3.org/2000/svg';
+        const existingLabels = svg.querySelector('.direct-edge-labels');
+        if (existingLabels) existingLabels.remove();
+        let defs = svg.querySelector('defs');
+        if (!defs) {{ defs = document.createElementNS(namespace, 'defs'); svg.insertBefore(defs, svg.firstChild); }}
+        let marker = defs.querySelector('#direct-edge-arrow');
+        if (!marker) {{
+            marker = document.createElementNS(namespace, 'marker');
+            marker.setAttribute('id', 'direct-edge-arrow');
+            marker.setAttribute('viewBox', '0 -5 10 10');
+            marker.setAttribute('refX', '9'); marker.setAttribute('refY', '0');
+            marker.setAttribute('markerWidth', '6'); marker.setAttribute('markerHeight', '6');
+            marker.setAttribute('orient', 'auto');
+            const arrow = document.createElementNS(namespace, 'path');
+            arrow.setAttribute('d', 'M0,-5L10,0L0,5Z'); arrow.setAttribute('fill', 'context-stroke');
+            marker.appendChild(arrow); defs.appendChild(marker);
+        }}
+        const nodes = new Map();
+        svg.querySelectorAll('g.node').forEach(function(node) {{
+            const title = node.querySelector('title');
+            if (!title) return;
+            const box = node.getBBox();
+            nodes.set(title.textContent, {{box: box, center: {{x: box.x + box.width / 2, y: box.y + box.height / 2}}}});
+        }});
+        const labels = document.createElementNS(namespace, 'g');
+        labels.setAttribute('class', 'direct-edge-labels'); svg.appendChild(labels);
+        edgeGeometry.forEach(function(edge, index) {{
+            const edgeGroup = svg.querySelector('#graph-edge-' + index);
+            const source = nodes.get(edge.source), target = nodes.get(edge.target);
+            if (!edgeGroup || !source || !target) return;
+            const dx = target.center.x - source.center.x, dy = target.center.y - source.center.y;
+            const distance = Math.hypot(dx, dy) || 1;
+            const bend = Math.min(44, Math.max(12, distance * 0.08)) * (index % 2 ? 1 : -1);
+            const control = {{x: (source.center.x + target.center.x) / 2 - dy / distance * bend,
+                             y: (source.center.y + target.center.y) / 2 + dx / distance * bend}};
+            const start = clipToBox(source.box, source.center, control);
+            const end = clipToBox(target.box, target.center, control);
+            const path = edgeGroup.querySelector('path');
+            if (!path) return;
+            path.setAttribute('d', `M${{start.x}},${{start.y}} Q${{control.x}},${{control.y}} ${{end.x}},${{end.y}}`);
+            path.setAttribute('marker-end', 'url(#direct-edge-arrow)');
+            edgeGroup.querySelectorAll('polygon').forEach(function(polygon) {{ polygon.style.display = 'none'; }});
+            if (!edge.label) return;
+            const midpoint = {{x: (start.x + 2 * control.x + end.x) / 4, y: (start.y + 2 * control.y + end.y) / 4}};
+            const group = document.createElementNS(namespace, 'g');
+            group.setAttribute('class', 'edge-witness-label'); group.style.cursor = 'pointer';
+            const width = Math.max(36, edge.label.length * 6.1 + 12), height = 18;
+            const rect = document.createElementNS(namespace, 'rect');
+            rect.setAttribute('x', midpoint.x - width / 2); rect.setAttribute('y', midpoint.y - height / 2);
+            rect.setAttribute('width', width); rect.setAttribute('height', height); rect.setAttribute('rx', '3');
+            rect.setAttribute('fill', '#ffffff'); rect.setAttribute('fill-opacity', '0.88');
+            rect.setAttribute('stroke', edge.labelColor); rect.setAttribute('stroke-width', '0.7'); group.appendChild(rect);
+            const text = document.createElementNS(namespace, 'text');
+            text.setAttribute('x', midpoint.x); text.setAttribute('y', midpoint.y + 3.5);
+            text.setAttribute('text-anchor', 'middle'); text.setAttribute('font-size', '10'); text.setAttribute('fill', edge.labelColor);
+            text.textContent = edge.label; group.appendChild(text);
+            group.addEventListener('click', function(event) {{ event.stopPropagation(); showEdgeCard(index); }});
+            labels.appendChild(group);
+        }});
+    }}
     document.addEventListener('DOMContentLoaded', function() {{
         console.log('Initializing graph visualization');
         const graphContainer = d3.select('#graph-container-main');
@@ -345,35 +400,28 @@ def render_graph_html(
             .renderDot(`{dot_src}`)
             .on('end', function() {{
                 console.log('Main graph rendering complete');
+                drawDirectCurves();
                 d3.selectAll('.node').on('click', function(event) {{
                     var node_id = d3.select(this).select('title').text();
                     if (!node_id) {{
                         node_id = d3.select(this).select('text').text();
                     }}
                     
-                    // Check if this is an edge label node
-                    if (node_id.startsWith('__edge__')) {{
-                        var edge_idx = parseInt(node_id.replace('__edge__', ''));
-                        // Get the edge card by index
-                        var edge_card = edgeCards[node_id];
-                        var edge_label_key = '__label__' + edge_idx;
-                        // If there's a label card, show it instead
-                        if (edgeCards[edge_label_key]) {{
-                            edge_card = edgeCards[edge_label_key];
-                        }}
-                        var modal = document.getElementById('node-modal');
-                        var content = document.getElementById('node-modal-content');
-                        content.innerHTML = edge_card || '<div class="table-card"><h3>Edge ' + edge_idx + '</h3></div>';
-                        modal.style.display = 'block';
-                        typesetModalContent(content);
-                    }} else {{
-                        // Regular node
-                        var modal = document.getElementById('node-modal');
-                        var content = document.getElementById('node-modal-content');
-                        content.innerHTML = nodeCards[node_id] || '<div class="table-card"><h3>' + node_id + '</h3></div>';
-                        modal.style.display = 'block';
-                        typesetModalContent(content);
-                    }}
+                    var modal = document.getElementById('node-modal');
+                    var content = document.getElementById('node-modal-content');
+                    content.innerHTML = nodeCards[node_id] || '<div class="table-card"><h3>' + node_id + '</h3></div>';
+                    modal.style.display = 'block';
+                    typesetModalContent(content);
+                }});
+                // Native DOT edge labels are part of the edge SVG group.  A
+                // click anywhere on that group (especially its witness
+                // label) opens the witness card when one is available.
+                d3.selectAll('.edge').on('click', function(event) {{
+                    var edgeId = this.id || '';
+                    var match = edgeId.match(/^graph-edge-(\\d+)$/);
+                    if (!match) return;
+                    var edgeIdx = parseInt(match[1]);
+                    showEdgeCard(edgeIdx);
                 }});
             }});
         
