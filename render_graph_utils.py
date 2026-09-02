@@ -41,7 +41,7 @@ def render_graph_html(
     # Graphviz supplies node placement and ranks only.  The browser replaces
     # these straight placeholder edges with direct Bézier curves after layout;
     # this avoids Graphviz's obstacle-avoiding routes altogether.
-    dot_lines = ['strict digraph "" {graph [bgcolor=transparent, rankdir=TB, newrank=true, splines=line];']
+    dot_lines = ['strict digraph "" {graph [bgcolor=transparent, rankdir=TB, newrank=true, remincross=true, splines=line];']
     dot_lines.append('node [label="\\N", penwidth=1.8];')
     dot_lines.append('edge [arrowhead=vee];')
     for node in nodes:
@@ -80,7 +80,11 @@ def render_graph_html(
         # avoid; it is already a visible node in this graph.
         rank_representatives.append(node_ids[0])
     for upper, lower in zip(rank_representatives, rank_representatives[1:]):
-        dot_lines.append(f'"{upper}" -> "{lower}" [style=invis, weight=1000, minlen=1];')
+        # This only establishes the sequence of rank blocks.  Giving this
+        # arbitrary representative chain a large weight pins columns together
+        # and defeats dot's crossing minimizer, so retain only the smallest
+        # useful rank weight.
+        dot_lines.append(f'"{upper}" -> "{lower}" [style=invis, weight=1, minlen=1];')
     
     for edge_idx, edge in enumerate(edges):
         attrs = []
@@ -96,7 +100,9 @@ def render_graph_html(
             attrs.append(f'arrowhead={edge["arrowhead"]}')
         if "style" in edge:
             attrs.append(f'style={edge["style"]}')
-        # An overlay is informative but must not alter the Hasse backbone.
+        # Overlay edges must not perturb the Hasse-backbone layout.  Dot uses
+        # only the reduced homogeneous relations to choose a compact ordering;
+        # the browser draws all other direct facts afterwards.
         if edge.get("constraint") is False:
             attrs.append('constraint=false')
         attrs.append('arrowsize=0.7')
@@ -322,12 +328,71 @@ def render_graph_html(
         const scale = 1 / Math.max(Math.abs(dx) / halfWidth, Math.abs(dy) / halfHeight, 1e-6);
         return {{x: origin.x + dx * scale, y: origin.y + dy * scale}};
     }}
+    function quadraticPoint(start, control, end, t) {{
+        const u = 1 - t;
+        return {{
+            x: u * u * start.x + 2 * u * t * control.x + t * t * end.x,
+            y: u * u * start.y + 2 * u * t * control.y + t * t * end.y,
+        }};
+    }}
+    function curveHitsNode(start, control, end, box) {{
+        // Sampling is sufficient here: nodes are substantially larger than
+        // the curve stroke and labels, and a small padding keeps paths from
+        // visually grazing their boundary.
+        const padding = 7;
+        for (let step = 1; step < 40; step += 1) {{
+            const point = quadraticPoint(start, control, end, step / 40);
+            if (point.x >= box.x - padding && point.x <= box.x + box.width + padding
+                && point.y >= box.y - padding && point.y <= box.y + box.height + padding) {{
+                return true;
+            }}
+        }}
+        return false;
+    }}
+    function labelHitsNode(start, control, end, label, box) {{
+        if (!label) return false;
+        const midpoint = quadraticPoint(start, control, end, 0.5);
+        const halfWidth = Math.max(36, label.length * 6.1 + 12) / 2 + 4;
+        const halfHeight = 13;
+        return midpoint.x + halfWidth >= box.x && midpoint.x - halfWidth <= box.x + box.width
+            && midpoint.y + halfHeight >= box.y && midpoint.y - halfHeight <= box.y + box.height;
+    }}
+    function chooseCurve(source, target, otherNodes, index, label) {{
+        const dx = target.center.x - source.center.x, dy = target.center.y - source.center.y;
+        const distance = Math.hypot(dx, dy) || 1;
+        const middle = {{x: (source.center.x + target.center.x) / 2,
+                        y: (source.center.y + target.center.y) / 2}};
+        // Prefer gentle, alternating curves, but progressively move an edge
+        // aside until it has a clear route through the placed node boxes.
+        const signs = index % 2 ? [1, -1] : [-1, 1];
+        const extent = otherNodes.reduce(function(maximum, node) {{
+            return Math.max(maximum, node.box.width, node.box.height,
+                Math.abs(node.center.x - middle.x), Math.abs(node.center.y - middle.y));
+        }}, distance);
+        const bends = [0, 16, 32, 56, 88, 128, 184, 256, 352, 480,
+                       640, extent * 1.25, extent * 2.25];
+        let fallback = null;
+        for (const bend of bends) {{
+            for (const sign of signs) {{
+                const control = {{x: middle.x - dy / distance * bend * sign,
+                                 y: middle.y + dx / distance * bend * sign}};
+                const start = clipToBox(source.box, source.center, control);
+                const end = clipToBox(target.box, target.center, control);
+                if (!fallback) fallback = {{start, control, end}};
+                if (!otherNodes.some(function(node) {{
+                    return curveHitsNode(start, control, end, node.box)
+                        || labelHitsNode(start, control, end, label, node.box);
+                }})) {{
+                    return {{start, control, end}};
+                }}
+            }}
+        }}
+        return fallback;
+    }}
     function drawDirectCurves() {{
         const svg = document.querySelector('#graph svg');
         if (!svg) return;
         const namespace = 'http://www.w3.org/2000/svg';
-        const existingLabels = svg.querySelector('.direct-edge-labels');
-        if (existingLabels) existingLabels.remove();
         let defs = svg.querySelector('defs');
         if (!defs) {{ defs = document.createElementNS(namespace, 'defs'); svg.insertBefore(defs, svg.firstChild); }}
         let marker = defs.querySelector('#direct-edge-arrow');
@@ -349,19 +414,15 @@ def render_graph_html(
             const box = node.getBBox();
             nodes.set(title.textContent, {{box: box, center: {{x: box.x + box.width / 2, y: box.y + box.height / 2}}}});
         }});
-        const labels = document.createElementNS(namespace, 'g');
-        labels.setAttribute('class', 'direct-edge-labels'); svg.appendChild(labels);
         edgeGeometry.forEach(function(edge, index) {{
             const edgeGroup = svg.querySelector('#graph-edge-' + index);
             const source = nodes.get(edge.source), target = nodes.get(edge.target);
             if (!edgeGroup || !source || !target) return;
-            const dx = target.center.x - source.center.x, dy = target.center.y - source.center.y;
-            const distance = Math.hypot(dx, dy) || 1;
-            const bend = Math.min(44, Math.max(12, distance * 0.08)) * (index % 2 ? 1 : -1);
-            const control = {{x: (source.center.x + target.center.x) / 2 - dy / distance * bend,
-                             y: (source.center.y + target.center.y) / 2 + dx / distance * bend}};
-            const start = clipToBox(source.box, source.center, control);
-            const end = clipToBox(target.box, target.center, control);
+            edgeGroup.querySelectorAll('.edge-witness-label').forEach(function(label) {{ label.remove(); }});
+            const others = Array.from(nodes.entries())
+                .filter(function(entry) {{ return entry[0] !== edge.source && entry[0] !== edge.target; }})
+                .map(function(entry) {{ return entry[1]; }});
+            const {{start, control, end}} = chooseCurve(source, target, others, index, edge.label);
             const path = edgeGroup.querySelector('path');
             if (!path) return;
             path.setAttribute('d', `M${{start.x}},${{start.y}} Q${{control.x}},${{control.y}} ${{end.x}},${{end.y}}`);
@@ -382,7 +443,11 @@ def render_graph_html(
             text.setAttribute('text-anchor', 'middle'); text.setAttribute('font-size', '10'); text.setAttribute('fill', edge.labelColor);
             text.textContent = edge.label; group.appendChild(text);
             group.addEventListener('click', function(event) {{ event.stopPropagation(); showEdgeCard(index); }});
-            labels.appendChild(group);
+            // Keep the label in the same transformed SVG group as the path.
+            // Appending it at the root SVG level put it in a different
+            // coordinate system after d3-graphviz's fit transform, which is
+            // why labels could appear detached from their arrows.
+            edgeGroup.appendChild(group);
         }});
     }}
     document.addEventListener('DOMContentLoaded', function() {{
