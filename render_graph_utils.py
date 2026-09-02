@@ -38,7 +38,11 @@ def render_graph_html(
     # Spell out the direction instead of relying on Graphviz's default, since
     # a graph with only same-rank blocks otherwise has no constraint ordering
     # those blocks with respect to one another.
-    dot_lines = ['strict digraph "" {graph [bgcolor=transparent, rankdir=TB, newrank=true];']
+    # ``polyline`` keeps long overlay edges legible: Graphviz still avoids
+    # nodes, but it uses a small number of straight segments instead of the
+    # default smooth Bézier routes, which become visually wiggly in a dense
+    # ranked graph.
+    dot_lines = ['strict digraph "" {graph [bgcolor=transparent, rankdir=TB, newrank=true, splines=polyline];']
     dot_lines.append('node [label="\\N", penwidth=1.8];')
     dot_lines.append('edge [arrowhead=vee];')
     for node in nodes:
