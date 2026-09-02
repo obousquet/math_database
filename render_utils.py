@@ -14,6 +14,22 @@ from pybtex.database.input import bibtex
 from pybtex.plugin import find_plugin
 import os
 
+
+def normalize_latex(equation):
+    """Return TeX without one pair of outer math delimiters.
+
+    Catalogue data predates a single convention: some symbols are stored as
+    ``$\\mathrm{VC}$`` while others are stored as bare TeX.  Renderers own the
+    choice of display delimiters, so passing through stored delimiters creates
+    nested math mode (especially in dynamically inserted graph cards).
+    """
+    latex = str(equation).strip()
+    for opening, closing in (("$$", "$$"), ("\\[", "\\]"), ("\\(", "\\)"), ("$", "$")):
+        if latex.startswith(opening) and latex.endswith(closing) and len(latex) > len(opening) + len(closing):
+            return latex[len(opening):-len(closing)].strip()
+    return latex
+
+
 def render_list_section(items, title):
     """Render a list of items as an HTML section with title."""
     if not items:
@@ -37,10 +53,11 @@ def render_latex_field(label, equation):
         return result
     if label:
         result += f"<strong>{label}:</strong>"
+    latex = html.escape(normalize_latex(equation), quote=True)
     result += f"""
     <div class="table-display">
-        <div class="latex-equation" data-latex="{equation}">
-            {equation}
+        <div class="latex-equation" data-latex="{latex}">
+            \\[{latex}\\]
         </div>
     </div>
     """
@@ -63,8 +80,27 @@ def render_text_field(label, text, data_dir):
         return ' '.join(maybe_linked(f'#bib/{c}', data_dir) for c in citations)
     citation_pattern = r'\\cite\{([^}]+)\}'
     linked_text = re.sub(citation_pattern, citation_replacer, linked_text)
-    # Render Markdown
-    html_text = markdown.markdown(linked_text, extensions=['extra', 'sane_lists'])
+    # Markdown treats underscores inside TeX (for example ``\\mathrm{Y}_2``)
+    # as emphasis delimiters.  Protect every math span before Markdown sees it,
+    # then restore it verbatim for MathJax.  This applies equally to database
+    # pages and graph-popup cards, both of which use this renderer.
+    math_spans = []
+
+    def protect_math(match):
+        token = f"@@MATHJAXSPAN{len(math_spans)}@@"
+        math_spans.append(match.group(0))
+        return token
+
+    math_pattern = re.compile(
+        r"\\\\\[.*?\\\\\]|\\\\\(.*?\\\\\)|"
+        r"(?<!\\\\)\$\$.*?(?<!\\\\)\$\$|"
+        r"(?<!\\\\)\$(?!\$).*?(?<!\\\\)\$(?!\$)",
+        re.DOTALL,
+    )
+    protected_text = math_pattern.sub(protect_math, linked_text)
+    html_text = markdown.markdown(protected_text, extensions=['extra', 'sane_lists'])
+    for index, math_span in enumerate(math_spans):
+        html_text = html_text.replace(f"@@MATHJAXSPAN{index}@@", math_span)
     if label:
         result += f"<strong>{label}:</strong>"
     result += f"<div class=\"text-field\">{html_text}</div>"
@@ -381,19 +417,34 @@ def render_relationship_statement(relationship, cache, link_prefix=""):
 
     def math_content(parameter, fallback):
         symbol = str(parameter.get("symbol") or parameter.get("name", fallback))
-        if symbol.startswith("$") and symbol.endswith("$"):
-            symbol = symbol[1:-1]
-        return html.escape(symbol)
+        return html.escape(normalize_latex(symbol))
 
     first_symbol = math_content(first, "P_1")
     second_symbol = math_content(second, "P_2")
+    multiplicative_constant = normalize_latex(
+        relationship.get("multiplicative_constant", "c")
+    )
+    scaled_second_symbol = (
+        second_symbol
+        if multiplicative_constant == "1"
+        else f"{html.escape(multiplicative_constant)}{second_symbol}"
+    )
+    additive_constant = relationship.get("additive_constant")
+    normalized_additive_constant = normalize_latex(additive_constant) if additive_constant else ""
+    affine_suffix = (
+        f" + ({html.escape(normalized_additive_constant[1:])})"
+        if normalized_additive_constant.startswith("-")
+        else f" - ({html.escape(normalized_additive_constant)})"
+        if normalized_additive_constant
+        else ""
+    )
     formulas = {
         "larger": f"{first_symbol} \\ge {second_symbol}",
-        "larger_c": f"{first_symbol} \\ge c{second_symbol}",
+        "larger_c": f"{first_symbol} \\ge {scaled_second_symbol}{affine_suffix}",
         "equivalence": f"{first_symbol} = {second_symbol}",
-        "log": f"{first_symbol} \\ge c\\log {second_symbol}",
-        "sqrt": f"{first_symbol} \\ge c\\sqrt{{{second_symbol}}}",
-        "inv_log": f"{first_symbol} \\ge \\frac{{c{second_symbol}}}{{\\log n}}",
+        "log": f"{first_symbol} \\ge {multiplicative_constant}\\log {second_symbol}",
+        "sqrt": f"{first_symbol} \\ge {multiplicative_constant}\\sqrt{{{second_symbol}}}",
+        "inv_log": f"{first_symbol} \\ge \\frac{{{multiplicative_constant}{second_symbol}}}{{\\log n}}",
     }
     formula = formulas.get(relationship.get("relationship_type"), f"{first_symbol} ? {second_symbol}")
     variant = relationship.get("variant")

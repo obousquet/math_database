@@ -34,7 +34,11 @@ def render_graph_html(
         mode: "static" or "server" for rendering mode.
     """
     # Build DOT source for graphviz.js
-    dot_lines = ['strict digraph "" {graph [bgcolor=transparent];']
+    # Graph hooks conventionally assign rank 0 to the greatest parameters.
+    # Spell out the direction instead of relying on Graphviz's default, since
+    # a graph with only same-rank blocks otherwise has no constraint ordering
+    # those blocks with respect to one another.
+    dot_lines = ['strict digraph "" {graph [bgcolor=transparent, rankdir=TB, newrank=true];']
     dot_lines.append('node [label="\\N", penwidth=1.8];')
     dot_lines.append('edge [arrowhead=vee];')
     for node in nodes:
@@ -72,8 +76,20 @@ def render_graph_html(
     for edge_idx, edge in witness_nodes:
         if "label_rank" in edge:
             rank_groups.setdefault(edge["label_rank"], []).append(f"__edge__{edge_idx}")
-    for _, node_ids in sorted(rank_groups.items()):
+    ordered_ranks = sorted(rank_groups)
+    rank_anchors = []
+    for rank_index, rank_value in enumerate(ordered_ranks):
+        anchor = f'__rank_anchor__{rank_index}'
+        rank_anchors.append(anchor)
+        node_ids = rank_groups[rank_value] + [anchor]
+        # The anchor has no visible footprint, but it gives the rank an actual
+        # vertex.  The invisible chain below then forces rank 0 above rank 1,
+        # rank 1 above rank 2, and so on—even for a rank containing only
+        # overlay-connected nodes.
+        dot_lines.append(f'"{anchor}" [shape=point, width=0, height=0, label="", style=invis];')
         dot_lines.append('{rank=same; ' + '; '.join(f'"{node_id}"' for node_id in node_ids) + ';}')
+    for upper, lower in zip(rank_anchors, rank_anchors[1:]):
+        dot_lines.append(f'"{upper}" -> "{lower}" [style=invis, weight=1000, minlen=1];')
     
     # Add witness nodes for clickability and for their visible class labels.
     for edge_idx, edge in witness_nodes:
@@ -93,13 +109,17 @@ def render_graph_html(
             attrs.append(f'arrowhead={edge["arrowhead"]}')
         if "style" in edge:
             attrs.append(f'style={edge["style"]}')
-        if edge.get("constraint") is False and edge_idx not in witness_indexes:
+        # An overlay is informative but must not alter the Hasse backbone.
+        # This applies equally to a labelled/witness edge: splitting it into
+        # two DOT edges must not accidentally restore a rank constraint.
+        if edge.get("constraint") is False:
             attrs.append('constraint=false')
         attrs.append('arrowsize=0.7')
         if edge_idx in witness_indexes:
             edge_label_node = f"__edge__{edge_idx}"
-            # The two constrained links ensure the class is vertically placed
-            # between the parameters rather than floating with overlay edges.
+            # Backbone links constrain the hierarchy. Overlay links are
+            # constraint-free but keep their explicit midpoint rank, when the
+            # repository hook supplied one.
             dot_lines.append(f'"{edge["source"]}" -> "{edge_label_node}" [{", ".join(attrs)}, dir=none, minlen=1];')
             dot_lines.append(f'"{edge_label_node}" -> "{edge["target"]}" [{", ".join(attrs)}, minlen=1];')
         else:
@@ -274,13 +294,27 @@ def render_graph_html(
     const nodeCards = {json.dumps(node_cards)};
     const edgeCards = {json.dumps(edge_cards)};
     const legendItems = {json.dumps(legend_items_data)};
+    function normalizeLatex(latex) {{
+        // The catalogue has historically accepted both bare TeX and TeX
+        // already wrapped in a math delimiter.  This renderer owns the
+        // display delimiter, so remove exactly one outer pair first.
+        latex = (latex || '').trim();
+        const delimiters = [['$$', '$$'], ['\\\\[', '\\\\]'], ['\\\\(', '\\\\)'], ['$', '$']];
+        for (const [opening, closing] of delimiters) {{
+            if (latex.startsWith(opening) && latex.endsWith(closing)
+                && latex.length > opening.length + closing.length) {{
+                return latex.slice(opening.length, -closing.length).trim();
+            }}
+        }}
+        return latex;
+    }}
     function typesetModalContent(content) {{
         // Cards inserted into the modal are not present when the page-level
         // MathJax initializer runs.  In particular, generic class cards use
         // .latex-equation/data-latex wrappers, whose contents need delimiters
         // before MathJax can recognise them as mathematics.
         content.querySelectorAll('.latex-equation').forEach(function(equation) {{
-            const latex = equation.getAttribute('data-latex');
+            const latex = normalizeLatex(equation.getAttribute('data-latex'));
             if (latex) equation.textContent = '$$' + latex + '$$';
         }});
         if (window.MathJax && typeof MathJax.typesetPromise === 'function') {{
