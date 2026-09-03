@@ -55,6 +55,8 @@ def render_graph_html(
             attrs.append('style=filled')
         if "shape" in node:
             attrs.append(f'shape={node["shape"]}')
+        if "peripheries" in node:
+            attrs.append(f'peripheries={int(node["peripheries"])}')
         if "style" in node:
             attrs.append(f'style={node["style"]}')
         dot_lines.append(f'"{node["id"]}" [{", ".join(attrs)}];')
@@ -211,6 +213,8 @@ def render_graph_html(
                     attrs.append('style=filled')
                 if "shape" in item:
                     attrs.append(f'shape={item["shape"]}')
+                if "peripheries" in item:
+                    attrs.append(f'peripheries={int(item["peripheries"])}')
                 if "style" in item:
                     attrs.append(f'style={item["style"]}')
                 

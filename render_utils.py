@@ -445,6 +445,7 @@ def render_relationship_statement(relationship, cache, link_prefix=""):
         "log": f"{first_symbol} \\ge {multiplicative_constant}\\log {second_symbol}",
         "sqrt": f"{first_symbol} \\ge {multiplicative_constant}\\sqrt{{{second_symbol}}}",
         "inv_log": f"{first_symbol} \\ge \\frac{{{multiplicative_constant}{second_symbol}}}{{\\log n}}",
+        "incomparable": f"{first_symbol}\\mathrel{{\\parallel}}{second_symbol}\\;\\text{{(incomparable)}}",
     }
     formula = formulas.get(relationship.get("relationship_type"), f"{first_symbol} ? {second_symbol}")
     variant = relationship.get("variant")
