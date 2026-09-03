@@ -18,6 +18,7 @@ def render_graph_html(
     nodes: List[Dict[str, Any]],
     edges: List[Dict[str, Any]],
     legend: List[Dict[str, Any]],
+    clusters: List[Dict[str, Any]] | None = None,
     graph_name: str = "Graph",
     data_dir: str = None,
     base_url: str = "/",
@@ -60,6 +61,33 @@ def render_graph_html(
         if "style" in node:
             attrs.append(f'style={node["style"]}')
         dot_lines.append(f'"{node["id"]}" [{", ".join(attrs)}];')
+
+    # Graph hooks may identify a set of nodes that merits a visual enclosure
+    # (for example, parameters mutually bounded by affine-linear functions).
+    # Clusters are optional and deliberately contain only real nodes: this
+    # avoids the invisible-anchor routing artefacts that the graph renderer
+    # otherwise has to work around.
+    for cluster_index, cluster in enumerate(clusters or []):
+        node_ids = cluster.get("nodes", [])
+        if len(node_ids) < 2:
+            continue
+        attrs = {
+            "label": cluster.get("label", ""),
+            "color": cluster.get("color", "#6C5CE7"),
+            "fontcolor": cluster.get("fontcolor", "#4B3F72"),
+            "style": cluster.get("style", "rounded,dashed"),
+            "penwidth": cluster.get("penwidth", 1.25),
+            "margin": cluster.get("margin", 10),
+        }
+        rendered_attrs = ", ".join(
+            f'{key}="{value}"' if isinstance(value, str) else f"{key}={value}"
+            for key, value in attrs.items()
+        )
+        dot_lines.append(
+            f'subgraph cluster_{cluster_index} {{graph [{rendered_attrs}]; rank=same; '
+            + "; ".join(f'"{node_id}"' for node_id in node_ids)
+            + ";}"
+        )
 
     # A repository graph hook may assign ranks to its nodes.  Grouping each
     # rank in a DOT ``rank=same`` block lets a condensed preorder render from
@@ -585,5 +613,6 @@ def render_named_graph_html(data_dir: str, short_name: str, base_url: str = "/",
     nodes = graph_data.get("nodes", [])
     edges = graph_data.get("edges", [])
     legend = graph_data.get("legend", [])
+    clusters = graph_data.get("clusters", [])
     graph_name = graph_info.get("name", short_name)
-    return render_graph_html(nodes, edges, legend=legend, graph_name=graph_name, data_dir=data_dir, base_url=base_url, mode=mode)
+    return render_graph_html(nodes, edges, legend=legend, clusters=clusters, graph_name=graph_name, data_dir=data_dir, base_url=base_url, mode=mode)
