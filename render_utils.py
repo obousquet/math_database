@@ -545,6 +545,54 @@ def render_parameter_relationships(entry, cache, link_prefix=""):
         sections += f"<p><strong>Incomparabilities:</strong></p><ul class=\"fields-list\">{incomparable_items}</ul>"
     return f'<div class="reference-field">{sections}</div>'
 
+
+def render_parameter_value_references(entry, cache, data_dir):
+    """Render a parameter's known values as compact mathematical statements.
+
+    A value record naturally has two named arguments: a parameter and a
+    concept class.  When both records provide a TeX symbol, displaying the
+    record as ``P(C)=v`` is much easier to scan than its verbose generated
+    name, while the link still leads to its proof page.  Keep the exact value
+    and its optional asymptotic classification together rather than discarding
+    either one.
+    """
+    value_entries = [
+        value
+        for value in cache.get_table_entries("values")
+        if match(value.get("parameter_id"), entry, table="parameters")
+    ]
+    if not value_entries:
+        return '<div class="reference-field"><p><strong>Values:</strong> <em>None</em></p></div>'
+
+    items = []
+    for value_entry in value_entries:
+        _, parameter = cache.lookup(value_entry.get("parameter_id"))
+        _, concept_class = cache.lookup(value_entry.get("class_id"))
+        if parameter and concept_class and parameter.get("symbol") and concept_class.get("symbol"):
+            parameter_symbol = html.escape(normalize_latex(parameter["symbol"]))
+            class_symbol = html.escape(normalize_latex(concept_class["symbol"]))
+            exact_value = normalize_latex(value_entry.get("value", ""))
+            order_value = normalize_latex(
+                get_enum_display_name(
+                    "values", "value_class", value_entry.get("value_class"), data_dir
+                )
+            ) if value_entry.get("value_class") else ""
+            operator = "="
+            for bound_operator in ("\\le", "\\ge"):
+                if exact_value.startswith(bound_operator):
+                    operator = bound_operator
+                    exact_value = exact_value[len(bound_operator):].lstrip()
+                    break
+            right_hand_side = html.escape(exact_value or order_value or "?")
+            if exact_value and order_value and exact_value != order_value:
+                right_hand_side += f"\\;({html.escape(order_value)})"
+            display = f"${parameter_symbol}({class_symbol}) {operator} {right_hand_side}$"
+        else:
+            display = html.escape(value_entry.get("name", value_entry.get("short_name", "Value")))
+        link = f"values/{value_entry.get('short_name', value_entry.get('id'))}.html"
+        items.append(f"<li><a href='{link}'>{display}</a></li>")
+    return f'<div class="reference-field"><p><strong>Values:</strong><ul class="fields-list">{"".join(items)}</ul></p></div>'
+
 def get_next_id(table_name, data_dir):
     """Return the next available id (as a string) for a table, assuming numeric ids."""
     cache = load_utils.get_table_entries_cache(data_dir)
@@ -620,6 +668,9 @@ def render_card(table_name, schema, entry, data_dir, mode="static", make_title=N
                 items_html += "</ul>"
                 field += items_html + '</p>'
         elif col_type == 'reference':
+            if table_name == "parameters" and col_name == "related_values":
+                card_content += render_parameter_value_references(entry, cache, data_dir) + '\n'
+                continue
             if table_name == "parameters" and col_name == "related_relationships_1":
                 field = render_parameter_relationships(entry, cache)
                 card_content += field + '\n'
