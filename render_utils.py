@@ -488,11 +488,18 @@ def render_relationship_statement(relationship, cache, link_prefix=""):
     variant = relationship.get("variant")
     variant_html = f" <span class=\"relationship-variant\">({html.escape(variant)})</span>" if variant else ""
     relationship_link = f"{link_prefix}relationships/{relationship.get('short_name', relationship.get('id'))}.html"
-    return f'<a href="{relationship_link}" class="relationship-statement">${formula}${variant_html}</a>'
+    status = relationship.get("status", "established")
+    status_badge = ""
+    if status != "established":
+        status_badge = (
+            f' <span class="relationship-status-badge relationship-status-{html.escape(status)}">'
+            f'{html.escape(status.replace("_", " ").title())}</span>'
+        )
+    return f'<a href="{relationship_link}" class="relationship-statement">${formula}${variant_html}</a>{status_badge}'
 
 
 def render_parameter_relationships(entry, cache, link_prefix=""):
-    """Render all facts involving a parameter, separating incomparabilities."""
+    """Render all parameter facts, keeping refutations visibly non-assertive."""
     relationships = [
         relationship
         for relationship in cache.get_table_entries("relationships")
@@ -501,19 +508,39 @@ def render_parameter_relationships(entry, cache, link_prefix=""):
     ]
     if not relationships:
         return '<div class="reference-field"><p><strong>Relationships:</strong> <em>None</em></p></div>'
-    comparable_items = "".join(
-        f"<li>{render_relationship_statement(relationship, cache, link_prefix)}</li>"
-        for relationship in relationships
+    def list_items(candidates):
+        return "".join(
+            f"<li>{render_relationship_statement(relationship, cache, link_prefix)}</li>"
+            for relationship in candidates
+        )
+
+    established_items = list_items(
+        relationship for relationship in relationships
         if relationship.get("relationship_type") != "incomparable"
+        and relationship.get("status", "established") == "established"
     )
-    incomparable_items = "".join(
-        f"<li>{render_relationship_statement(relationship, cache, link_prefix)}</li>"
+    refuted_items = list_items(
+        relationship for relationship in relationships
+        if relationship.get("relationship_type") != "incomparable"
+        and relationship.get("status") == "refuted"
+    )
+    pending_items = list_items(
+        relationship for relationship in relationships
+        if relationship.get("relationship_type") != "incomparable"
+        and relationship.get("status", "established") not in {"established", "refuted"}
+    )
+    incomparable_items = list_items(
+        relationship
         for relationship in relationships
         if relationship.get("relationship_type") == "incomparable"
     )
     sections = ""
-    if comparable_items:
-        sections += f"<p><strong>Relationships:</strong></p><ul class=\"fields-list\">{comparable_items}</ul>"
+    if established_items:
+        sections += f"<p><strong>Established relationships:</strong></p><ul class=\"fields-list\">{established_items}</ul>"
+    if refuted_items:
+        sections += f"<p><strong>Refuted proposed relationships:</strong></p><ul class=\"fields-list relationship-list-refuted\">{refuted_items}</ul>"
+    if pending_items:
+        sections += f"<p><strong>Relationships not yet established:</strong></p><ul class=\"fields-list\">{pending_items}</ul>"
     if incomparable_items:
         sections += f"<p><strong>Incomparabilities:</strong></p><ul class=\"fields-list\">{incomparable_items}</ul>"
     return f'<div class="reference-field">{sections}</div>'

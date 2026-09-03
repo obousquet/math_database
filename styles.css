@@ -165,6 +165,35 @@ main {
     margin-bottom: 0.3rem;
 }
 
+/* Contextual parameter lists must not make a refuted formula look asserted. */
+.relationship-status-badge {
+    display: inline-block;
+    margin-left: 0.35rem;
+    padding: 0.08rem 0.4rem;
+    border-radius: 999px;
+    font-size: 0.74em;
+    font-weight: 700;
+    line-height: 1.2;
+    vertical-align: middle;
+}
+
+.relationship-status-badge.relationship-status-refuted {
+    color: #8b1e1e;
+    background: #ffe5e5;
+}
+
+.relationship-status-badge.relationship-status-conjectured,
+.relationship-status-badge.relationship-status-open,
+.relationship-status-badge.relationship-status-needs-verification {
+    color: #765700;
+    background: #fff3c4;
+}
+
+.relationship-list-refuted {
+    border-left: 3px solid #d96b6b;
+    padding-left: 1rem;
+}
+
 .text-field {
     margin-top: 1rem;
     padding: 1rem;
