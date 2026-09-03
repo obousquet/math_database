@@ -377,6 +377,42 @@ def render_table_content(rows_html, schema):
             </div>
     """
 
+
+def render_relationships_table_content(rows_by_status, schema):
+    """Render relationship records in epistemically distinct sections.
+
+    A refuted relationship is useful catalogue information, but presenting it
+    next to established facts without a structural distinction makes a list of
+    relationships look like a list of assertions.  Keep every record searchable
+    while placing it in the section matching its declared status.
+    """
+    description = schema.get('description', '') if schema else ''
+    sections = (
+        ("established", "Established relationships", "Proved or definitionally valid facts."),
+        ("refuted", "Refuted relationships", "Claims recorded with a counterexample; they are not asserted as facts."),
+        ("other", "Unresolved relationships", "Conjectured, open, or still-to-be-verified records."),
+    )
+    sections_html = ""
+    for key, title, explanation in sections:
+        rows_html = rows_by_status.get(key, "")
+        if not rows_html:
+            continue
+        sections_html += f"""
+            <section class="relationship-status-section relationship-status-{key}">
+                <h2>{title}</h2>
+                <p>{explanation}</p>
+                <div class="table-grid">
+                    {rows_html}
+                </div>
+            </section>
+        """
+    return f"""
+            <div class="table-description">
+                <p>{description}</p>
+            </div>
+            {sections_html}
+    """
+
 def match(reference, entry, table=None):
     if not isinstance(reference, str) or not reference.startswith('#'):
         return False
@@ -861,11 +897,23 @@ def render_table_index_html(table_name, data_rows, schema, data_dir, mode, make_
     </div>
     """
     
-    rows_html = ""
     table_name = schema.get('table_name')
-    for row in data_rows:
-        rows_html += render_card(
-            table_name=table_name, schema=schema, entry=row, data_dir=data_dir,  mode=mode, make_title=make_title)
+    if table_name == "relationships":
+        rows_by_status = {"established": "", "refuted": "", "other": ""}
+        for row in data_rows:
+            status = row.get("status")
+            group = status if status in {"established", "refuted"} else "other"
+            rows_by_status[group] += render_card(
+                table_name=table_name, schema=schema, entry=row, data_dir=data_dir,
+                mode=mode, make_title=make_title)
+        table_content = render_relationships_table_content(rows_by_status, schema)
+    else:
+        rows_html = ""
+        for row in data_rows:
+            rows_html += render_card(
+                table_name=table_name, schema=schema, entry=row, data_dir=data_dir,
+                mode=mode, make_title=make_title)
+        table_content = render_table_content(rows_html, schema)
     
     # Add sorting and filtering JavaScript
     sort_filter_script = """
@@ -873,31 +921,28 @@ def render_table_index_html(table_name, data_rows, schema, data_dir, mode, make_
     let isCompactMode = false;
     
     function sortCards(sortBy) {
-        const grid = document.querySelector('.table-grid');
-        const cards = Array.from(grid.querySelectorAll('.table-card'));
-        
-        cards.sort((a, b) => {
-            if (sortBy === 'id') {
-                const idA = parseInt(a.id.replace('math-', '')) || 0;
-                const idB = parseInt(b.id.replace('math-', '')) || 0;
-                return idA - idB;
-            } else if (sortBy === 'name') {
-                const nameA = (a.querySelector('h3 a') || a.querySelector('h3')).textContent.toLowerCase();
-                const nameB = (b.querySelector('h3 a') || b.querySelector('h3')).textContent.toLowerCase();
-                return nameA.localeCompare(nameB);
-            }
-            return 0;
+        document.querySelectorAll('.table-grid').forEach(grid => {
+            const cards = Array.from(grid.querySelectorAll('.table-card'));
+            cards.sort((a, b) => {
+                if (sortBy === 'id') {
+                    const idA = parseInt(a.id.replace('math-', '')) || 0;
+                    const idB = parseInt(b.id.replace('math-', '')) || 0;
+                    return idA - idB;
+                } else if (sortBy === 'name') {
+                    const nameA = (a.querySelector('h3 a') || a.querySelector('h3')).textContent.toLowerCase();
+                    const nameB = (b.querySelector('h3 a') || b.querySelector('h3')).textContent.toLowerCase();
+                    return nameA.localeCompare(nameB);
+                }
+                return 0;
+            });
+            grid.innerHTML = '';
+            cards.forEach(card => grid.appendChild(card));
         });
-        
-        // Clear grid and re-append sorted cards
-        grid.innerHTML = '';
-        cards.forEach(card => grid.appendChild(card));
     }
     
     function filterCards() {
         const searchTerm = document.getElementById('search-box').value.toLowerCase();
-        const grid = document.querySelector('.table-grid');
-        const cards = grid.querySelectorAll('.table-card');
+        const cards = document.querySelectorAll('.table-grid .table-card');
         
         cards.forEach(card => {
             const name = (card.querySelector('h3 a') || card.querySelector('h3')).textContent.toLowerCase();
@@ -937,7 +982,7 @@ def render_table_index_html(table_name, data_rows, schema, data_dir, mode, make_
     </script>
     """
     
-    content = controls + render_table_content(rows_html, schema)
+    content = controls + table_content
     extra_scripts = (get_delete_js(table_name) if mode == "server" else "") + sort_filter_script
     
     return render_base_page_template(

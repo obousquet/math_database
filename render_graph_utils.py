@@ -102,6 +102,8 @@ def render_graph_html(
             attrs.append(f'arrowhead={edge["arrowhead"]}')
         if "style" in edge:
             attrs.append(f'style={edge["style"]}')
+        if "penwidth" in edge:
+            attrs.append(f'penwidth={float(edge["penwidth"]):g}')
         # Overlay edges must not perturb the Hasse-backbone layout.  Dot uses
         # only the reduced homogeneous relations to choose a compact ordering;
         # the browser draws all other direct facts afterwards.
@@ -234,7 +236,7 @@ def render_graph_html(
                     edge_attrs.append(f'arrowhead={item["arrowhead"]}')
                 if "style" in item:
                     edge_attrs.append(f'style={item["style"]}')
-                edge_attrs.append('penwidth=1.5')
+                edge_attrs.append(f'penwidth={float(item.get("penwidth", 1.5)):g}')
                 edge_attrs.append('minlen=3')
                 
                 dot_lines.append(f'"src" -> "dst" [{", ".join(edge_attrs)}];')
@@ -285,6 +287,7 @@ def render_graph_html(
         "target": edge["target"],
         "label": edge.get("label"),
         "labelColor": edge.get("label_color", "#555555"),
+        "penwidth": edge.get("penwidth", 1),
     } for edge in edges])};
     const legendItems = {json.dumps(legend_items_data)};
     function normalizeLatex(latex) {{
@@ -432,6 +435,7 @@ def render_graph_html(
             const path = edgeGroup.querySelector('path');
             if (!path) return;
             path.setAttribute('d', `M${{start.x}},${{start.y}} Q${{control.x}},${{control.y}} ${{end.x}},${{end.y}}`);
+            path.setAttribute('stroke-width', edge.penwidth);
             path.setAttribute('marker-end', 'url(#direct-edge-arrow)');
             edgeGroup.querySelectorAll('polygon').forEach(function(polygon) {{ polygon.style.display = 'none'; }});
             if (!edge.label) return;

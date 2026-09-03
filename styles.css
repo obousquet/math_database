@@ -180,6 +180,38 @@ main {
     color: #666;
 }
 
+/* Relationship indexes group statements by epistemic status. */
+.relationship-status-section {
+    margin: 2.5rem 0;
+}
+
+.relationship-status-section > h2 {
+    margin-bottom: 0.25rem;
+}
+
+.relationship-status-section > p {
+    margin-top: 0;
+    color: #666;
+}
+
+.relationship-status-refuted {
+    padding: 1.25rem;
+    border: 1px solid #e6a0a0;
+    border-radius: 10px;
+    background: #fff5f5;
+}
+
+.relationship-status-refuted > h2 {
+    color: #a33;
+}
+
+.relationship-status-other {
+    padding: 1.25rem;
+    border: 1px solid #e7c66c;
+    border-radius: 10px;
+    background: #fffdf2;
+}
+
 footer {
     text-align: center;
     padding: 2rem;
