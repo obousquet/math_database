@@ -388,7 +388,8 @@ def render_relationships_table_content(rows_by_status, schema):
     """
     description = schema.get('description', '') if schema else ''
     sections = (
-        ("established", "Established relationships", "Proved or definitionally valid facts."),
+        ("established", "Established relationships", "Proved or definitionally valid inequalities and equalities."),
+        ("incomparable", "Established incomparabilities", "Pairs for which neither parameter dominates the other; each record supplies separation witnesses in both directions."),
         ("refuted", "Refuted relationships", "Claims recorded with a counterexample; they are not asserted as facts."),
         ("other", "Unresolved relationships", "Conjectured, open, or still-to-be-verified records."),
     )
@@ -491,7 +492,7 @@ def render_relationship_statement(relationship, cache, link_prefix=""):
 
 
 def render_parameter_relationships(entry, cache, link_prefix=""):
-    """Render all facts involving a parameter once, independent of endpoint order."""
+    """Render all facts involving a parameter, separating incomparabilities."""
     relationships = [
         relationship
         for relationship in cache.get_table_entries("relationships")
@@ -500,11 +501,22 @@ def render_parameter_relationships(entry, cache, link_prefix=""):
     ]
     if not relationships:
         return '<div class="reference-field"><p><strong>Relationships:</strong> <em>None</em></p></div>'
-    items = "".join(
+    comparable_items = "".join(
         f"<li>{render_relationship_statement(relationship, cache, link_prefix)}</li>"
         for relationship in relationships
+        if relationship.get("relationship_type") != "incomparable"
     )
-    return f'<div class="reference-field"><p><strong>Relationships:</strong><ul class="fields-list">{items}</ul></p></div>'
+    incomparable_items = "".join(
+        f"<li>{render_relationship_statement(relationship, cache, link_prefix)}</li>"
+        for relationship in relationships
+        if relationship.get("relationship_type") == "incomparable"
+    )
+    sections = ""
+    if comparable_items:
+        sections += f"<p><strong>Relationships:</strong></p><ul class=\"fields-list\">{comparable_items}</ul>"
+    if incomparable_items:
+        sections += f"<p><strong>Incomparabilities:</strong></p><ul class=\"fields-list\">{incomparable_items}</ul>"
+    return f'<div class="reference-field">{sections}</div>'
 
 def get_next_id(table_name, data_dir):
     """Return the next available id (as a string) for a table, assuming numeric ids."""
@@ -899,10 +911,14 @@ def render_table_index_html(table_name, data_rows, schema, data_dir, mode, make_
     
     table_name = schema.get('table_name')
     if table_name == "relationships":
-        rows_by_status = {"established": "", "refuted": "", "other": ""}
+        rows_by_status = {"established": "", "incomparable": "", "refuted": "", "other": ""}
         for row in data_rows:
             status = row.get("status")
-            group = status if status in {"established", "refuted"} else "other"
+            group = (
+                "incomparable"
+                if row.get("relationship_type") == "incomparable" and status == "established"
+                else status if status in {"established", "refuted"} else "other"
+            )
             rows_by_status[group] += render_card(
                 table_name=table_name, schema=schema, entry=row, data_dir=data_dir,
                 mode=mode, make_title=make_title)
