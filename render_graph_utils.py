@@ -19,6 +19,7 @@ def render_graph_html(
     edges: List[Dict[str, Any]],
     legend: List[Dict[str, Any]],
     clusters: List[Dict[str, Any]] | None = None,
+    layout: Dict[str, Any] | None = None,
     graph_name: str = "Graph",
     data_dir: str = None,
     base_url: str = "/",
@@ -42,7 +43,22 @@ def render_graph_html(
     # Graphviz supplies node placement and ranks only.  The browser replaces
     # these straight placeholder edges with direct Bézier curves after layout;
     # this avoids Graphviz's obstacle-avoiding routes altogether.
-    dot_lines = ['strict digraph "" {graph [bgcolor=transparent, rankdir=TB, newrank=true, remincross=true, splines=line];']
+    # Individual databases may ask for a less compact drawing without
+    # changing the shared defaults used by every other graph. These are DOT
+    # graph attributes only: the hook still owns ranks and the actual edge
+    # selection. In particular, mclimit gives dot more crossing-minimizer
+    # iterations before its coordinate assignment.
+    layout = layout or {}
+    allowed_layout = {"ranksep", "nodesep", "mclimit", "nslimit", "remincross"}
+    rendered_layout = ", ".join(
+        f"{key}={layout[key]}"
+        for key in allowed_layout
+        if key in layout
+    )
+    graph_attrs = "bgcolor=transparent, rankdir=TB, newrank=true, remincross=true, splines=line"
+    if rendered_layout:
+        graph_attrs += ", " + rendered_layout
+    dot_lines = [f'strict digraph "" {{graph [{graph_attrs}];']
     dot_lines.append('node [label="\\N", penwidth=1.8];')
     dot_lines.append('edge [arrowhead=vee];')
     for node in nodes:
@@ -622,5 +638,6 @@ def render_named_graph_html(data_dir: str, short_name: str, base_url: str = "/",
     edges = graph_data.get("edges", [])
     legend = graph_data.get("legend", [])
     clusters = graph_data.get("clusters", [])
+    layout = graph_data.get("layout", {})
     graph_name = graph_info.get("name", short_name)
-    return render_graph_html(nodes, edges, legend=legend, clusters=clusters, graph_name=graph_name, data_dir=data_dir, base_url=base_url, mode=mode)
+    return render_graph_html(nodes, edges, legend=legend, clusters=clusters, layout=layout, graph_name=graph_name, data_dir=data_dir, base_url=base_url, mode=mode)
