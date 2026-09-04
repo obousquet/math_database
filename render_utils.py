@@ -481,6 +481,7 @@ def render_relationship_statement(relationship, cache, link_prefix=""):
         "equivalence": f"{first_symbol} = {second_symbol}",
         "log": f"{first_symbol} \\ge {multiplicative_constant}\\log {second_symbol}",
         "sqrt": f"{first_symbol} \\ge {multiplicative_constant}\\sqrt{{{second_symbol}}}",
+        "sqrt_upper": f"{first_symbol} \\le {multiplicative_constant}\\sqrt{{{second_symbol}}}",
         "inv_log": f"{first_symbol} \\ge \\frac{{{multiplicative_constant}{second_symbol}}}{{\\log n}}",
         "incomparable": f"{first_symbol}\\mathrel{{\\parallel}}{second_symbol}\\;\\text{{(incomparable)}}",
     }

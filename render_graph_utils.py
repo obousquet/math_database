@@ -128,6 +128,8 @@ def render_graph_html(
             attrs.append('color="#888888"')
         if "arrowhead" in edge:
             attrs.append(f'arrowhead={edge["arrowhead"]}')
+        if "dir" in edge:
+            attrs.append(f'dir={edge["dir"]}')
         if "style" in edge:
             attrs.append(f'style={edge["style"]}')
         if "penwidth" in edge:
@@ -316,6 +318,7 @@ def render_graph_html(
         "label": edge.get("label"),
         "labelColor": edge.get("label_color", "#555555"),
         "penwidth": edge.get("penwidth", 1),
+        "reverseArrow": edge.get("dir") == "back",
     } for edge in edges])};
     const legendItems = {json.dumps(legend_items_data)};
     function normalizeLatex(latex) {{
@@ -439,7 +442,7 @@ def render_graph_html(
             marker.setAttribute('viewBox', '0 -5 10 10');
             marker.setAttribute('refX', '9'); marker.setAttribute('refY', '0');
             marker.setAttribute('markerWidth', '6'); marker.setAttribute('markerHeight', '6');
-            marker.setAttribute('orient', 'auto');
+            marker.setAttribute('orient', 'auto-start-reverse');
             const arrow = document.createElementNS(namespace, 'path');
             arrow.setAttribute('d', 'M0,-5L10,0L0,5Z'); arrow.setAttribute('fill', 'context-stroke');
             marker.appendChild(arrow); defs.appendChild(marker);
@@ -464,7 +467,12 @@ def render_graph_html(
             if (!path) return;
             path.setAttribute('d', `M${{start.x}},${{start.y}} Q${{control.x}},${{control.y}} ${{end.x}},${{end.y}}`);
             path.setAttribute('stroke-width', edge.penwidth);
-            path.setAttribute('marker-end', 'url(#direct-edge-arrow)');
+            path.removeAttribute('marker-start');
+            path.removeAttribute('marker-end');
+            path.setAttribute(
+                edge.reverseArrow ? 'marker-start' : 'marker-end',
+                'url(#direct-edge-arrow)'
+            );
             edgeGroup.querySelectorAll('polygon').forEach(function(polygon) {{ polygon.style.display = 'none'; }});
             if (!edge.label) return;
             const midpoint = {{x: (start.x + 2 * control.x + end.x) / 4, y: (start.y + 2 * control.y + end.y) / 4}};
