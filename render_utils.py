@@ -475,11 +475,23 @@ def render_relationship_statement(relationship, cache, link_prefix=""):
         if normalized_additive_constant
         else ""
     )
+    log_base = normalize_latex(relationship.get("logarithm_base", ""))
+    log_shift = normalize_latex(relationship.get("argument_shift", ""))
+    log_argument = second_symbol
+    if log_shift and log_shift != "0":
+        log_argument += (
+            f" - ({html.escape(log_shift[1:])})"
+            if log_shift.startswith("-")
+            else f" + ({html.escape(log_shift)})"
+        )
+    log_operator = f"\\log_{{{html.escape(log_base)}}}" if log_base else "\\log"
+    log_coefficient = "" if multiplicative_constant == "1" else html.escape(multiplicative_constant)
     formulas = {
         "larger": f"{first_symbol} \\ge {second_symbol}",
         "larger_c": f"{first_symbol} \\ge {scaled_second_symbol}{affine_suffix}",
         "equivalence": f"{first_symbol} = {second_symbol}",
         "log": f"{first_symbol} \\ge {multiplicative_constant}\\log {second_symbol}",
+        "log_upper": f"{first_symbol} \\le {log_coefficient}{log_operator}\\left({log_argument}\\right)",
         "sqrt": f"{first_symbol} \\ge {multiplicative_constant}\\sqrt{{{second_symbol}}}",
         "sqrt_upper": f"{first_symbol} \\le {multiplicative_constant}\\sqrt{{{second_symbol}}}",
         "inv_log": f"{first_symbol} \\ge \\frac{{{multiplicative_constant}{second_symbol}}}{{\\log n}}",
