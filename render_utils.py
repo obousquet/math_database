@@ -119,34 +119,32 @@ def render_string_field(label, text, table_name, data_dir):
 
 def get_mathjax_head():
     return """
-        <script id=\"MathJax-script\" async src=\"https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js\"></script>
         <script>
             window.MathJax = {
                 tex: {
                     inlineMath: [['$', '$'], ['\\\\(', '\\\\)']],
                     displayMath: [['$$', '$$'], ['\\\\[', '\\\\]']]
+                },
+                startup: {
+                    pageReady: function() {
+                        // Prepare database equation fields before the single
+                        // automatic typeset, including a cached/fast loader.
+                        document.querySelectorAll('.latex-equation[data-latex]').forEach(eq => {
+                            eq.textContent = '$$' + eq.getAttribute('data-latex') + '$$';
+                        });
+                        return MathJax.startup.defaultPageReady();
+                    }
                 }
-            };</script>"""
+            };
+        </script>
+        <script id=\"MathJax-script\" async src=\"https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js\"></script>"""
 
 def get_mathjax_scripts():
-    return """
-        <script>
-            document.addEventListener('DOMContentLoaded', function() {
-                const equations = document.querySelectorAll('.latex-equation');
-                equations.forEach(eq => {
-                    const latex = eq.getAttribute('data-latex');
-                    eq.innerHTML = '$$' + latex + '$$';
-                });
-                function tryTypeset() {{
-                    if (window.MathJax && typeof MathJax.typesetPromise === 'function') {{
-                        MathJax.typesetPromise();
-                    }} else {{
-                        setTimeout(tryTypeset, 100);
-                    }}
-                }}
-                tryTypeset();
-            });
-        </script>"""
+    # Kept for callers; initialization belongs to startup.pageReady above.
+    # A second full-page pass can reprocess MathJax's assistive MathML and
+    # produce nested mjx-container elements. Dynamic cards typeset only
+    # their newly inserted subtree instead.
+    return ""
 
 def render_nav_bar(data_dir=None, tables_info=None, main_json=None):
     """
