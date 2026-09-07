@@ -111,6 +111,13 @@ After making local modifications, you can commit and push your changes, then mak
 ## Example Data Structure
 
 ### Schema (schema.json)
+
+Optional columns may set `hide_when_empty: true` to omit their card field when
+the value is absent, null, or an empty string (zero and false remain visible).
+Relationship statements support `incomparability_strength` values `affine`
+and `functional`; the scope is displayed in parameter relationship lists.
+Missing legacy scope remains simply "incomparable" and is not inferred.
+
 ```json
 {
   "table_name": "equations",

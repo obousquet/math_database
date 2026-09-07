@@ -1,8 +1,9 @@
 """Regression tests for upper-bound orientation and logarithm arguments."""
 
 import unittest
+from unittest.mock import patch
 
-from render_utils import render_relationship_statement
+from render_utils import render_card, render_relationship_statement
 
 
 class Cache:
@@ -31,6 +32,30 @@ class LogUpperTests(unittest.TestCase):
 
     def test_zero_shift(self):
         self.assertNotIn("+ (0)", self.statement(argument_shift="0"))
+
+    def test_incomparability_scope_is_visible_and_legacy_is_unchanged(self):
+        for strength, label in (("affine", "affinely incomparable"),
+                                ("functional", "functionally incomparable"),
+                                (None, "incomparable")):
+            self.assertIn(r"\text{(" + label + ")}", self.statement(
+                relationship_type="incomparable", incomparability_strength=strength))
+
+
+class OptionalFieldTests(unittest.TestCase):
+    def card(self, value, hide=True):
+        with patch('render_utils.load_utils.get_table_entries_cache'):
+            return render_card('tests', {'columns': [
+                {'name': 'optional', 'label': 'Optional', 'type': 'integer', 'hide_when_empty': hide}
+            ]}, {'id': 1, 'name': 'Test', 'optional': value}, '/unused')
+
+    def test_opt_in_empty_fields_are_hidden(self):
+        for value in (None, ''):
+            self.assertNotIn('Optional:', self.card(value))
+            self.assertIn('Optional:', self.card(value, hide=False))
+
+    def test_zero_is_not_empty(self):
+        self.assertIn('<strong>Optional:</strong> 0', self.card(0))
+        self.assertIn('<strong>Optional:</strong> False', self.card(False))
 
 
 if __name__ == "__main__":

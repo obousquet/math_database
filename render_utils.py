@@ -484,6 +484,10 @@ def render_relationship_statement(relationship, cache, link_prefix=""):
         )
     log_operator = f"\\log_{{{html.escape(log_base)}}}" if log_base else "\\log"
     log_coefficient = "" if multiplicative_constant == "1" else html.escape(multiplicative_constant)
+    incomparability_label = {
+        "affine": "affinely incomparable",
+        "functional": "functionally incomparable",
+    }.get(relationship.get("incomparability_strength"), "incomparable")
     formulas = {
         "larger": f"{first_symbol} \\ge {second_symbol}",
         "larger_c": f"{first_symbol} \\ge {scaled_second_symbol}{affine_suffix}",
@@ -493,7 +497,7 @@ def render_relationship_statement(relationship, cache, link_prefix=""):
         "sqrt": f"{first_symbol} \\ge {multiplicative_constant}\\sqrt{{{second_symbol}}}",
         "sqrt_upper": f"{first_symbol} \\le {multiplicative_constant}\\sqrt{{{second_symbol}}}",
         "inv_log": f"{first_symbol} \\ge \\frac{{{multiplicative_constant}{second_symbol}}}{{\\log n}}",
-        "incomparable": f"{first_symbol}\\mathrel{{\\parallel}}{second_symbol}\\;\\text{{(incomparable)}}",
+        "incomparable": f"{first_symbol}\\mathrel{{\\parallel}}{second_symbol}\\;\\text{{({incomparability_label})}}",
     }
     formula = formulas.get(relationship.get("relationship_type"), f"{first_symbol} ? {second_symbol}")
     variant = relationship.get("variant")
@@ -650,6 +654,8 @@ def render_card(table_name, schema, entry, data_dir, mode="static", make_title=N
         col_label = col.get('label', col_name)
         col_value = entry.get(col_name, '')
         if not col.get('rendered', True):
+            continue
+        if col.get('hide_when_empty') and col_value in (None, ''):
             continue
         col_type = col.get('type', 'string')
         if col_type == 'string':
