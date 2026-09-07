@@ -23,11 +23,12 @@ window.GraphReadability = (() => {
     }
     function optimize(nodes, edges, clusters) {
         if (!nodes.length) return {before: null, after: null};
-        const before = metrics(nodes, edges), byId = new Map(nodes.map(n=>[n.id,n]));
+        const unconstrained = metrics(nodes, edges), byId = new Map(nodes.map(n=>[n.id,n]));
+        const grouped=nodes.every(n=>Number.isInteger(n.horizontal_group));
         const rows = new Map(), membership = new Map();
         clusters.forEach((c,i) => c.nodes.forEach(id=>membership.set(id, 'cluster-'+i)));
         for (const n of nodes) {
-            const key = n.rank ?? n.y;
+            const key = `${n.rank ?? n.y}:${grouped?n.horizontal_group:''}`;
             if (!rows.has(key)) rows.set(key, new Map());
             const units = rows.get(key), unit = membership.get(n.id) ?? n.id;
             if (!units.has(unit)) units.set(unit, []);
@@ -36,6 +37,37 @@ window.GraphReadability = (() => {
         const layers = [...rows.values()].map(units => [...units.values()]
             .map(unit=>unit.sort((a,b)=>a.x-b.x)).sort((a,b)=>a[0].x-b[0].x))
             .sort((a,b)=>a[0][0].y-b[0][0].y);
+        const unitWidth=unit=>unit.reduce((s,n)=>s+n.width,0)+24*(unit.length-1)+32;
+        const rowWidth=row=>row.reduce((s,unit)=>s+unitWidth(unit),0)+32*(row.length-1);
+        const bands=new Map();
+        if (grouped) {
+            // Regions are global across rows, not merely a sort within each
+            // rank. Allocate only the width required by the widest row of a
+            // region; no dummy nodes or invisible routing obstacles.
+            for(const row of layers) {
+                const group=row[0][0].horizontal_group;
+                bands.set(group,Math.max(bands.get(group)||0,rowWidth(row)));
+            }
+            let left=0;
+            for(const group of [...bands.keys()].sort((a,b)=>a-b)) {
+                const width=bands.get(group);
+                bands.set(group,{left,right:left+width});
+                left+=width+100;
+            }
+            for(const row of layers) {
+                const band=bands.get(row[0][0].horizontal_group);
+                let x=(band.left+band.right-rowWidth(row))/2+16;
+                for(const unit of row) {
+                    for(const n of unit) {n.x=x+n.width/2;x+=n.width+24;}
+                    x+=40;
+                }
+            }
+        }
+        const withinBand=members=>!grouped||members.every(n=> {
+            const band=bands.get(n.horizontal_group);
+            return n.x-n.width/2>=band.left && n.x+n.width/2<=band.right;
+        });
+        const before=metrics(nodes,edges);
         const adjacency = new Map(nodes.map(n=>[n.id,[]]));
         edges.forEach(e=> {
             if (byId.has(e.source) && byId.has(e.target)) {
@@ -47,10 +79,14 @@ window.GraphReadability = (() => {
         function tryRow(order, compact=true) {
             const members = order.flat(), saved = members.map(n=>n.x);
             const outside = members.flatMap(n=>adjacency.get(n.id)).filter(n=>!members.includes(n));
-            const center = outside.length ? outside.reduce((s,n)=>s+n.x,0)/outside.length
+            let center = outside.length ? outside.reduce((s,n)=>s+n.x,0)/outside.length
                 : saved.reduce((a,b)=>a+b,0)/saved.length;
             // Keep affine-linear blocks together with room for their frame.
-            const widths = order.map(unit=>unit.reduce((s,n)=>s+n.width,0)+24*(unit.length-1)+32);
+            const widths = order.map(unitWidth);
+            if(grouped) {
+                const band=bands.get(members[0].horizontal_group), half=rowWidth(order)/2;
+                center=Math.max(band.left+half,Math.min(band.right-half,center));
+            }
             let left = center - (widths.reduce((a,b)=>a+b,0)+32*(order.length-1))/2;
             order.forEach((unit,i)=> {
                 let x = left+16;
@@ -68,7 +104,7 @@ window.GraphReadability = (() => {
                 });
             }
             const candidate = metrics(nodes,edges).score;
-            if (candidate < best - 1e-6) { best=candidate; return true; }
+            if (withinBand(members) && candidate < best - 1e-6) { best=candidate; return true; }
             members.forEach((n,i)=>n.x=saved[i]);
             return false;
         }
@@ -99,8 +135,9 @@ window.GraphReadability = (() => {
                     const left=unit[0].x-unit[0].width/2;
                     const last=unit[unit.length-1], right=last.x+last.width/2;
                     const previous=i?row[i-1].at(-1):null, next=row[i+1]?.[0];
-                    const lo=previous?previous.x+previous.width/2+48-left:-before.width;
-                    const hi=next?next.x-next.width/2-48-right:before.width;
+                    const band=grouped?bands.get(unit[0].horizontal_group):null;
+                    const lo=previous?previous.x+previous.width/2+48-left:band?band.left+16-left:-before.width;
+                    const hi=next?next.x-next.width/2-48-right:band?band.right-16-right:before.width;
                     if (lo>hi) continue;
                     const desired=barycentre(unit)-(left+right)/2;
                     for(const fraction of [1,0.5,0.25]) {
@@ -113,14 +150,15 @@ window.GraphReadability = (() => {
                 }
             }
         }
-        return {before, after: metrics(nodes,edges)};
+        return {unconstrained, before, after: metrics(nodes,edges), grouped};
     }
     function place(svg, metadata, edges, clusters, enabled) {
         if (!svg || !enabled) return;
         const meta = new Map(metadata.map(n=>[n.id,n]));
         const nodes = [...svg.querySelectorAll('g.node')].map(element=> {
             const id=element.querySelector('title').textContent, box=element.getBBox();
-            return {id, element, box, rank:meta.get(id)?.rank, x:box.x+box.width/2,
+            return {id, element, box, rank:meta.get(id)?.rank,
+                horizontal_group:meta.get(id)?.horizontal_group, x:box.x+box.width/2,
                 y:box.y+box.height/2, width:box.width};
         });
         const result = optimize(nodes,edges,clusters);
@@ -128,6 +166,7 @@ window.GraphReadability = (() => {
         nodes.forEach(n=> {
             const dx=n.x-n.box.x-n.box.width/2;
             n.element.dataset.offsetX=dx;
+            if(Number.isInteger(n.horizontal_group)) n.element.dataset.horizontalGroup=n.horizontal_group;
             n.element.setAttribute('transform', `translate(${dx},0)`);
         });
         // Refit the affine enclosures around the moved real nodes.

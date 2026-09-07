@@ -83,6 +83,19 @@ class ReadabilityTests(unittest.TestCase):
             return {overlaps, shiftedY:nodes.filter(n=>n.dy!==0).length};
         }""")
         self.assertEqual(geometry, {'overlaps': 0, 'shiftedY': 0})
+        regions = page.evaluate("""() => {
+            const groups=new Map();
+            document.querySelectorAll('#graph g.node[data-horizontal-group]').forEach(n=> {
+                const k=Number(n.dataset.horizontalGroup), b=n.getBoundingClientRect();
+                if(!groups.has(k)) groups.set(k,[]);
+                groups.get(k).push([b.left,b.right]);
+            });
+            return [...groups].sort((a,b)=>a[0]-b[0]).map(([k,boxes])=>({
+                group:k,left:Math.min(...boxes.map(b=>b[0])),right:Math.max(...boxes.map(b=>b[1]))}));
+        }""")
+        self.assertEqual([r['group'] for r in regions], [0,1,2,3])
+        for a,b in zip(regions,regions[1:]):
+            self.assertLess(a['right'],b['left'])
         visible = """() => [...document.querySelectorAll('.edge-witness-label')].filter(e=>getComputedStyle(e).visibility==='visible').length"""
         self.assertEqual(page.evaluate(visible), 0)
         page.select_option('#graph-witness-mode', 'always')

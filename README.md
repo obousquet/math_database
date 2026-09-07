@@ -76,6 +76,15 @@ shows the full list of linked parameters in the popup. An edge's optional
 `hierarchy: false` excludes it from transitive focus traversal, not from display
 or horizontal optimization (use this for nonlinear or variant-only overlays).
 
+An optional integer node field `horizontal_group` assigns left-to-right regions
+when every node supplies it. The optimizer reserves disjoint horizontal bands
+and optimizes within each one, preserving ranks and affine blocks. The hook must
+assign all members of a block to the same group. Layout scores then compare
+against the initial region-constrained placement; honoring regions takes priority
+over the unconstrained crossing score. Combinatorial Parameters uses full base
+affine reachability after equality collapse for E-only, both, Size-only, and
+neither-known regions; these labels do not assert incomparability.
+
 Browser regression checks:
 
 ```bash

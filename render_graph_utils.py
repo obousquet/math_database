@@ -4,6 +4,8 @@ from typing import List, Dict, Any
 import render_utils
 import re
 import html
+import hashlib
+from pathlib import Path
 
 # Node: {"id": str, "label": str, "ref": str}
 # Edge: {"source": str, "target": str, "ref": str, "label": str}
@@ -311,8 +313,12 @@ def render_graph_html(
             })
     
     # HTML template
-    head = """
-    <link rel="stylesheet" href="styles/graph.css" />
+    # Keep regenerated HTML from loading an older cached layout script/style.
+    asset_root = Path(__file__).resolve().parent
+    style_version = hashlib.sha256((asset_root / "styles/graph.css").read_bytes()).hexdigest()[:12]
+    layout_version = hashlib.sha256((asset_root / "js/graph-readability.js").read_bytes()).hexdigest()[:12]
+    head = f"""
+    <link rel="stylesheet" href="styles/graph.css?v={style_version}" />
     """
     html_str = f"""
     <div id='graph-container-main' class='graph-container-main'>
@@ -348,7 +354,7 @@ def render_graph_html(
     <script src="js/d3.min.js"></script>
     <script src="js/hpcc.min.js"></script>
     <script src="js/d3-graphviz.js"></script>
-    <script src="js/graph-readability.js"></script>
+    <script src="js/graph-readability.js?v={layout_version}"></script>
     <script>
     const nodeCards = {json.dumps(node_cards)};
     const edgeCards = {json.dumps(edge_cards)};
