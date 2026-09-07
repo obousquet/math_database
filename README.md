@@ -58,6 +58,35 @@ data/
 
 The generated website will be placed in the output directory, ready for GitHub Pages. The output directory is cleared before generation, so ensure `--output_dir` points only to generated site files.
 
+## Graph readability
+
+Graph pages offer optional **Focus on selection** (linear ancestors and
+descendants plus directly attached overlays), **Clear focus**, and **Fit graph**.
+Turn focus off to open parameter cards. Witness labels appear on edge hover or
+at readable zoom levels; the selector can instead show all labels or hide them.
+The underlying edge colors, dashes and separation-strength widths are unchanged.
+
+A graph hook may return `layout: {"optimize_horizontal": True}` to enable a
+bounded browser-side crossing/span cleanup using all displayed edges. It never
+changes node ranks or vertical positions and keeps affine clusters together.
+It scores straight edge chords as a proxy for the gently curved final paths;
+this is a heuristic, not a guarantee of a globally minimum-crossing drawing.
+Node `equivalent_refs` lists can accompany compact equality labels: the renderer
+shows the full list of linked parameters in the popup. An edge's optional
+`hierarchy: false` excludes it from transitive focus traversal, not from display
+or horizontal optimization (use this for nonlinear or variant-only overlays).
+
+Browser regression checks:
+
+```bash
+uv run --with playwright python test_graph_readability.py
+GRAPH_SITE_DIR=../Combinatorial-Parameters/docs uv run --with playwright python test_graph_readability.py
+```
+
+Chromium must be installed for Playwright. The second command also checks the
+generated graph, fixed vertical positions, overlap-free nodes, equality cards,
+focus/reset controls and witness-label zoom behavior against local site assets.
+
 ## Editing Data Locally
 
 To edit the database and preview changes locally, use the server:

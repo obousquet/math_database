@@ -204,6 +204,18 @@ def render_graph_html(
             card_html = f'<div class="table-card"><h3>{node.get("label", node["id"])} (no details)</h3></div>'
         node_cards[node["id"]] = card_html.replace('"', '\"').replace("'", "\'")
 
+    for node in nodes:
+        equivalents = []
+        for equivalent_ref in node.get("equivalent_refs", []):
+            equivalent_table, equivalent = cache.lookup(equivalent_ref)
+            if equivalent and equivalent_table == "parameters":
+                equivalents.append(
+                    f'<li><a href="parameters/{html.escape(equivalent["short_name"], quote=True)}.html">'
+                    f'{html.escape(equivalent["name"])}</a></li>'
+                )
+        if len(equivalents) > 1:
+            node_cards[node["id"]] += '<section class="graph-equivalents"><h4>Equal parameters</h4><ul>' + ''.join(equivalents) + '</ul></section>'
+
     # Prepare edge cards
     edge_cards = {}
     for edge_idx, edge in enumerate(edges):
@@ -306,6 +318,17 @@ def render_graph_html(
     <div id='graph-container-main' class='graph-container-main'>
         <button id='legend-button' onclick='document.getElementById("legend-modal").style.display="block"' style='position:absolute; top:10px; left:10px; z-index:100; padding:0.5em 1em; background:#4CAF50; color:white; border:none; border-radius:4px; cursor:pointer; font-size:1em;'>📊 Legend</button>
         <div id='graph'></div>
+        <div class='graph-controls'>
+            <label><input type='checkbox' id='graph-focus-mode'> Focus on selection</label>
+            <button id='graph-clear-focus' type='button'>Clear focus</button>
+            <button id='graph-fit' type='button'>Fit graph</button>
+            <label>Witness labels <select id='graph-witness-mode'>
+                <option value='auto'>Auto (zoom / hover)</option>
+                <option value='always'>Always</option>
+                <option value='never'>Hidden</option>
+            </select></label>
+            <span id='graph-focus-status' role='status'></span>
+        </div>
         <div id='node-modal' class='node-modal'>
             <div id='node-modal-content' class='node-modal-content'></div>
             <button onclick='document.getElementById("node-modal").style.display="none"' style='margin:1em auto;display:block;'>Close</button>
@@ -325,6 +348,7 @@ def render_graph_html(
     <script src="js/d3.min.js"></script>
     <script src="js/hpcc.min.js"></script>
     <script src="js/d3-graphviz.js"></script>
+    <script src="js/graph-readability.js"></script>
     <script>
     const nodeCards = {json.dumps(node_cards)};
     const edgeCards = {json.dumps(edge_cards)};
@@ -335,8 +359,11 @@ def render_graph_html(
         "labelColor": edge.get("label_color", "#555555"),
         "penwidth": edge.get("penwidth", 1),
         "reverseArrow": edge.get("dir") == "back",
+        "hierarchy": edge.get("hierarchy", True),
     } for edge in edges])};
     const legendItems = {json.dumps(legend_items_data)};
+    const graphNodes = {json.dumps(nodes)};
+    const graphClusters = {json.dumps(clusters or [])};
     function normalizeLatex(latex) {{
         // The catalogue has historically accepted both bare TeX and TeX
         // already wrapped in a math delimiter.  This renderer owns the
@@ -467,7 +494,9 @@ def render_graph_html(
         svg.querySelectorAll('g.node').forEach(function(node) {{
             const title = node.querySelector('title');
             if (!title) return;
-            const box = node.getBBox();
+            const raw = node.getBBox();
+            const box = {{x: raw.x + Number(node.dataset.offsetX || 0), y: raw.y,
+                         width: raw.width, height: raw.height}};
             nodes.set(title.textContent, {{box: box, center: {{x: box.x + box.width / 2, y: box.y + box.height / 2}}}});
         }});
         edgeGeometry.forEach(function(edge, index) {{
@@ -527,13 +556,20 @@ def render_graph_html(
             .renderDot(`{dot_src}`)
             .on('end', function() {{
                 console.log('Main graph rendering complete');
+                GraphReadability.place(document.querySelector('#graph svg'), graphNodes, edgeGeometry,
+                    graphClusters, {json.dumps(bool(layout.get('optimize_horizontal', False)))});
                 drawDirectCurves();
-                d3.selectAll('.node').on('click', function(event) {{
+                GraphReadability.interact(document.querySelector('#graph svg'), graphNodes, edgeGeometry);
+                d3.selectAll('#graph .node').on('click', function(event) {{
                     var node_id = d3.select(this).select('title').text();
                     if (!node_id) {{
                         node_id = d3.select(this).select('text').text();
                     }}
                     
+                    if (document.getElementById('graph-focus-mode').checked) {{
+                        GraphReadability.focus(node_id);
+                        return;
+                    }}
                     var modal = document.getElementById('node-modal');
                     var content = document.getElementById('node-modal-content');
                     content.innerHTML = nodeCards[node_id] || '<div class="table-card"><h3>' + node_id + '</h3></div>';
@@ -543,7 +579,7 @@ def render_graph_html(
                 // Native DOT edge labels are part of the edge SVG group.  A
                 // click anywhere on that group (especially its witness
                 // label) opens the witness card when one is available.
-                d3.selectAll('.edge').on('click', function(event) {{
+                d3.selectAll('#graph .edge').on('click', function(event) {{
                     var edgeId = this.id || '';
                     var match = edgeId.match(/^graph-edge-(\\d+)$/);
                     if (!match) return;
