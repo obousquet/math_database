@@ -33,6 +33,11 @@ class LogUpperTests(unittest.TestCase):
     def test_zero_shift(self):
         self.assertNotIn("+ (0)", self.statement(argument_shift="0"))
 
+    def test_functional_upper_is_not_rendered_as_affine_domination(self):
+        result = self.statement(relationship_type="functional_upper")
+        self.assertIn(r"$L^* \le f\left(\mathrm{E}\right)$", result)
+        self.assertNotIn(r"\ge", result)
+
     def test_incomparability_scope_is_visible_and_legacy_is_unchanged(self):
         for strength, label in (("affine", "affinely incomparable"),
                                 ("functional", "functionally incomparable"),

@@ -4,6 +4,11 @@ A Python application that generates static HTML websites from structured mathema
 
 Requires Python 3.10 or later.
 
+Relationship cards support `functional_upper`, rendered as $P_1\le f(P_2)$.
+It records a finite-valued function independent of the class, not an affine
+domination. Repository graph hooks decide whether to show such bounds;
+Combinatorial Parameters keeps them in lists and excludes them from Hasse ranks.
+
 ## Features
 
 - **Data-driven**: Organizes data in a structured directory format with schemas

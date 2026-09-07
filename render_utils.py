@@ -496,6 +496,7 @@ def render_relationship_statement(relationship, cache, link_prefix=""):
         "log_upper": f"{first_symbol} \\le {log_coefficient}{log_operator}\\left({log_argument}\\right)",
         "sqrt": f"{first_symbol} \\ge {multiplicative_constant}\\sqrt{{{second_symbol}}}",
         "sqrt_upper": f"{first_symbol} \\le {multiplicative_constant}\\sqrt{{{second_symbol}}}",
+        "functional_upper": f"{first_symbol} \\le f\\left({second_symbol}\\right)",
         "inv_log": f"{first_symbol} \\ge \\frac{{{multiplicative_constant}{second_symbol}}}{{\\log n}}",
         "incomparable": f"{first_symbol}\\mathrel{{\\parallel}}{second_symbol}\\;\\text{{({incomparability_label})}}",
     }
