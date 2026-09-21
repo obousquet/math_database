@@ -24,6 +24,12 @@ class LogUpperTests(unittest.TestCase):
         self.assertIn(r"$L^* \le \log_{2}\left(\mathrm{E} + (2)\right)$", result)
         self.assertNotIn("$$", result)
 
+    def test_inverse_log_uses_domain_shift_and_base(self):
+        result = self.statement(relationship_type="inv_log", multiplicative_constant="1",
+                                logarithm_base="2", argument_shift="1")
+        self.assertIn(r"$L^* \ge \frac{\mathrm{E}}{\log_{2}\left(n + (1)\right)}$", result)
+        self.assertIn(r"\frac{c\mathrm{E}}{\log n}", self.statement(relationship_type="inv_log"))
+
     def test_default_log_and_coefficient(self):
         self.assertIn(r"$L^* \le c\log\left(\mathrm{E}\right)$", self.statement())
 

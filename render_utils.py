@@ -484,6 +484,17 @@ def render_relationship_statement(relationship, cache, link_prefix=""):
         )
     log_operator = f"\\log_{{{html.escape(log_base)}}}" if log_base else "\\log"
     log_coefficient = "" if multiplicative_constant == "1" else html.escape(multiplicative_constant)
+    domain_log_argument = "n"
+    if log_shift and log_shift != "0":
+        domain_log_argument += (
+            f" - ({html.escape(log_shift[1:])})"
+            if log_shift.startswith("-")
+            else f" + ({html.escape(log_shift)})"
+        )
+    domain_log = (
+        f"{log_operator}\\left({domain_log_argument}\\right)"
+        if log_base or (log_shift and log_shift != "0") else "\\log n"
+    )
     incomparability_label = {
         "affine": "affinely incomparable",
         "functional": "functionally incomparable",
@@ -497,7 +508,7 @@ def render_relationship_statement(relationship, cache, link_prefix=""):
         "sqrt": f"{first_symbol} \\ge {multiplicative_constant}\\sqrt{{{second_symbol}}}",
         "sqrt_upper": f"{first_symbol} \\le {multiplicative_constant}\\sqrt{{{second_symbol}}}",
         "functional_upper": f"{first_symbol} \\le f\\left({second_symbol}\\right)",
-        "inv_log": f"{first_symbol} \\ge \\frac{{{multiplicative_constant}{second_symbol}}}{{\\log n}}",
+        "inv_log": f"{first_symbol} \\ge \\frac{{{log_coefficient}{second_symbol}}}{{{domain_log}}}",
         "incomparable": f"{first_symbol}\\mathrel{{\\parallel}}{second_symbol}\\;\\text{{({incomparability_label})}}",
     }
     formula = formulas.get(relationship.get("relationship_type"), f"{first_symbol} ? {second_symbol}")
