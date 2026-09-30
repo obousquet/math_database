@@ -60,7 +60,10 @@ def render_graph_html(
     graph_attrs = "bgcolor=transparent, rankdir=TB, newrank=true, remincross=true, splines=line"
     if rendered_layout:
         graph_attrs += ", " + rendered_layout
-    dot_lines = [f'strict digraph "" {{graph [{graph_attrs}];']
+    # Parallel edges can encode distinct database facts with the same endpoints
+    # (for example, conditioning closure and pc-minor closure).  A strict DOT
+    # graph silently coalesces them, so the renderer must use a multigraph.
+    dot_lines = [f'digraph "" {{graph [{graph_attrs}];']
     dot_lines.append('node [label="\\N", penwidth=1.8];')
     dot_lines.append('edge [arrowhead=vee];')
     for node in nodes:
@@ -71,13 +74,15 @@ def render_graph_html(
             attrs.append(f'color="{node["color"]}"')
         if "fillcolor" in node:
             attrs.append(f'fillcolor="{node["fillcolor"]}"')
-            attrs.append('style=filled')
         if "shape" in node:
             attrs.append(f'shape={node["shape"]}')
         if "peripheries" in node:
             attrs.append(f'peripheries={int(node["peripheries"])}')
-        if "style" in node:
-            attrs.append(f'style={node["style"]}')
+        styles = [style for style in node.get("style", "").split(",") if style]
+        if "fillcolor" in node and "filled" not in styles:
+            styles.insert(0, "filled")
+        if styles:
+            attrs.append(f'style="{",".join(styles)}"')
         dot_lines.append(f'"{node["id"]}" [{", ".join(attrs)}];')
 
     # Graph hooks may identify a set of nodes that merits a visual enclosure
@@ -272,13 +277,15 @@ def render_graph_html(
                     attrs.append(f'color="{item["color"]}"')
                 if "fillcolor" in item:
                     attrs.append(f'fillcolor="{item["fillcolor"]}"')
-                    attrs.append('style=filled')
                 if "shape" in item:
                     attrs.append(f'shape={item["shape"]}')
                 if "peripheries" in item:
                     attrs.append(f'peripheries={int(item["peripheries"])}')
-                if "style" in item:
-                    attrs.append(f'style={item["style"]}')
+                styles = [style for style in item.get("style", "").split(",") if style]
+                if "fillcolor" in item and "filled" not in styles:
+                    styles.insert(0, "filled")
+                if styles:
+                    attrs.append(f'style="{",".join(styles)}"')
                 
                 dot_lines.append(f'"item" [{", ".join(attrs)}];')
                 
