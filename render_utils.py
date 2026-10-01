@@ -413,6 +413,10 @@ def render_relationships_table_content(rows_by_status, schema):
     """
 
 def match(reference, entry, table=None):
+    # Reverse-reference columns may point at scalar reference fields or at
+    # arrays such as result.class_ids and result.invariant_ids.
+    if isinstance(reference, (list, tuple, set)):
+        return any(match(item, entry, table=table) for item in reference)
     if not isinstance(reference, str) or not reference.startswith('#'):
         return False
     key = reference[1:]
